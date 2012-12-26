@@ -152,11 +152,11 @@ func (self *Client) Get(data url.Values) *Client {
 }
 
 /*
-	Executes a requests and returns a sugar.Tuple object created
+	Executes a requests and returns a sugar.Map object created
 	from the JSON response.
 */
-func (self *Client) Json() (sugar.Tuple, error) {
-	result := &sugar.Tuple{}
+func (self *Client) Json() (sugar.Map, error) {
+	result := &sugar.Map{}
 
 	bytes, err := self.Do()
 

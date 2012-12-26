@@ -15,7 +15,7 @@ func init() {
 	// Creating a new test server.
 	http.HandleFunc("/",
 		func(w http.ResponseWriter, r *http.Request) {
-			response := sugar.Tuple{
+			response := sugar.Map{
 				"method": r.Method,
 				"proto":  r.Proto,
 				"host":   r.Host,
@@ -80,7 +80,7 @@ func TestExplicitGet(t *testing.T) {
 		t.Errorf("Expecting 200, got %d\n", client.Response.StatusCode)
 	}
 
-	var data sugar.Tuple
+	var data sugar.Map
 
 	data, err = client.To("/geocode/json").Get(url.Values{
 		"address": {"1600 Amphitheatre Parkway, Mountain View, CA"},
@@ -98,7 +98,7 @@ func TestExplicitGet(t *testing.T) {
 }
 
 func TestRequestTypes(t *testing.T) {
-	var data sugar.Tuple
+	var data sugar.Map
 
 	client := New("http://127.0.0.1:62621")
 
@@ -163,7 +163,7 @@ func TestRequestTypes(t *testing.T) {
 }
 
 func TestCustomHeader(t *testing.T) {
-	var data sugar.Tuple
+	var data sugar.Map
 
 	client := New("http://127.0.0.1:62621")
 
