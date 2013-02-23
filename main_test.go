@@ -2,25 +2,35 @@ package rest
 
 import (
 	"encoding/json"
-	//"fmt"
-	"github.com/gosexy/sugar"
-	"github.com/gosexy/to"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"testing"
+	"time"
 )
+
+const testServer = "127.0.0.1:62621"
+const reqForm = 1024 * 1024 * 8
+
+var client *Client
 
 func init() {
 	// Creating a new test server.
 	http.HandleFunc("/",
 		func(w http.ResponseWriter, r *http.Request) {
-			response := sugar.Map{
+			r.ParseMultipartForm(reqForm)
+
+			getValues, _ := url.ParseQuery(r.URL.RawQuery)
+
+			response := map[string]interface{}{
 				"method": r.Method,
 				"proto":  r.Proto,
 				"host":   r.Host,
 				"header": r.Header,
 				"url":    r.URL.String(),
+				"get":    getValues,
+				"post":   r.Form,
 			}
 			if r.Body != nil {
 				response["body"], _ = ioutil.ReadAll(r.Body)
@@ -31,165 +41,161 @@ func init() {
 			}
 		},
 	)
-	go http.ListenAndServe("127.0.0.1:62621", nil)
+	go http.ListenAndServe(testServer, nil)
+
+	time.Sleep(time.Second * 1)
 }
 
 func TestEnableDebug(t *testing.T) {
 	Debug = true
 }
 
-func TestImplicitGet(t *testing.T) {
-	client := New("http://www.golang.org")
-	_, err := client.Text()
-	if err != nil {
-		t.Errorf("Failed test: %s\n", err.Error())
-	}
+func TestInit(t *testing.T) {
+	client = New("http://" + testServer)
 }
 
-func TestExplicitGet(t *testing.T) {
-
+func TestGet(t *testing.T) {
+	var buf map[string]interface{}
 	var err error
 
-	client := New("http://maps.googleapis.com/maps/api/")
-
-	_, err = client.To("/geocode/").Do()
+	err = client.Get(&buf, "/search", url.Values{"term": {"some string"}})
 
 	if err != nil {
 		t.Errorf("Failed test: %s\n", err.Error())
 	}
 
-	if client.Response.StatusCode != 404 {
-		t.Errorf("Expecting 404, got %d\n", client.Response.StatusCode)
+	if buf["method"].(string) != "GET" {
+		t.Errorf("Test failed.")
 	}
 
-	_, err = client.To("/geocode/json").Get(url.Values{
-		"address": {"1600 Amphitheatre Parkway, Mountain View, CA"},
-		"sensor":  {"true"},
-	}).Text()
-
-	if client.Response.StatusCode != 200 {
-		t.Errorf("Expecting 200, got %d\n", client.Response.StatusCode)
+	if buf["url"].(string) != "/search?term=some+string" {
+		t.Errorf("Test failed.")
 	}
 
-	_, err = client.To("/geocode/json").Post(url.Values{
-		"address": {"1600 Amphitheatre Parkway, Mountain View, CA"},
-		"sensor":  {"true"},
-	}).Text()
-
-	if client.Response.StatusCode != 200 {
-		t.Errorf("Expecting 200, got %d\n", client.Response.StatusCode)
+	if buf["get"].(map[string]interface{})["term"].([]interface{})[0].(string) != "some string" {
+		t.Errorf("Test failed.")
 	}
 
-	var data sugar.Map
+	err = client.Get(&buf, "/search", nil)
 
-	data, err = client.To("/geocode/json").Get(url.Values{
-		"address": {"1600 Amphitheatre Parkway, Mountain View, CA"},
-		"sensor":  {"true"},
-	}).Json()
-
-	if client.Response.StatusCode != 200 {
-		t.Errorf("Expecting 200, got %d\n", client.Response.StatusCode)
+	if err != nil {
+		t.Errorf("Failed test: %s\n", err.Error())
 	}
 
-	if data.Get("status") != "OK" {
-		t.Errorf("Failed test.")
+	if buf["method"].(string) != "GET" {
+		t.Errorf("Test failed.")
 	}
-
 }
 
-func TestRequestTypes(t *testing.T) {
-	var data sugar.Map
+func TestPost(t *testing.T) {
+	var buf map[string]interface{}
+	var err error
 
-	client := New("http://127.0.0.1:62621")
+	err = client.Post(&buf, "/search?foo=the+quick", url.Values{"bar": {"brown fox"}})
 
-	client.To("/foo/bar").Do()
-
-	if client.Response.StatusCode != 200 {
-		t.Errorf("Expecting 200, got %d\n", client.Response.StatusCode)
+	if err != nil {
+		t.Errorf("Failed test: %s\n", err.Error())
 	}
 
-	data, _ = client.To("/foo/bar").Get(nil).Json()
+	fmt.Printf("%v\n", buf)
 
-	if client.Response.StatusCode != 200 {
-		t.Errorf("Expecting 200, got %d\n", client.Response.StatusCode)
+	if buf["method"].(string) != "POST" {
+		t.Errorf("Test failed.")
 	}
 
-	if data.Get("method") != "GET" {
-		t.Errorf("Expecting GET, got %s\n", data.Get("method"))
+	if buf["post"].(map[string]interface{})["bar"].([]interface{})[0].(string) != "brown fox" {
+		t.Errorf("Test failed.")
 	}
 
-	data, _ = client.To("/foo/bar").Post(url.Values{"foo": {"bar"}}).Json()
-
-	if data.Get("method") != "POST" {
-		t.Errorf("Expecting POST, got %s\n", data.Get("method"))
+	if buf["get"].(map[string]interface{})["foo"].([]interface{})[0].(string) != "the quick" {
+		t.Errorf("Test failed.")
 	}
 
-	data, _ = client.To("/foo/bar").Put(url.Values{"foo": {"bar"}}).Json()
+	err = client.Post(&buf, "/search?foo=the+quick", nil)
 
-	if data.Get("method") != "PUT" {
-		t.Errorf("Expecting PUT, got %s\n", data.Get("method"))
+	if err != nil {
+		t.Errorf("Failed test: %s\n", err.Error())
 	}
 
-	data, _ = client.To("/foo/bar").Delete(url.Values{"foo": {"bar"}}).Json()
-
-	if data.Get("method") != "DELETE" {
-		t.Errorf("Expecting DELETE, got %s\n", data.Get("method"))
+	if buf["method"].(string) != "POST" {
+		t.Errorf("Test failed.")
 	}
 
-	data, _ = client.To("/foo/bar").Head().Json()
-
-	if client.Response.StatusCode != 200 {
-		t.Errorf("Expecting 200, got %d\n", client.Response.StatusCode)
+	if buf["get"].(map[string]interface{})["foo"].([]interface{})[0].(string) != "the quick" {
+		t.Errorf("Test failed.")
 	}
-
-	if data != nil {
-		t.Errorf("Expecting HEAD, got %s\n", data.Get("method"))
-	}
-
-	data, _ = client.To("/foo/bar?a=b").Get(url.Values{"foo": {"bar"}}).Json()
-
-	if client.Response.StatusCode != 200 {
-		t.Errorf("Expecting 200, got %d\n", client.Response.StatusCode)
-	}
-
-	if data.Get("method") != "GET" {
-		t.Errorf("Expecting GET, got %s\n", data.Get("method"))
-	}
-
-	if data.Get("url") != "/foo/bar?a=b&foo=bar" {
-		t.Errorf("Expecting /foo/bar?a=b&foo=bar, got %s\n", data.Get("url"))
-	}
-
 }
 
-func TestCustomHeader(t *testing.T) {
-	var data sugar.Map
+func TestPut(t *testing.T) {
+	var buf map[string]interface{}
+	var err error
 
-	client := New("http://127.0.0.1:62621")
+	err = client.Put(&buf, "/search?foo=the+quick", url.Values{"bar": {"brown fox"}})
 
-	client.Header.Set("Foo", "Bar")
-	client.Header.Set("User-Agent", "gosexy/rest")
-
-	data, _ = client.To("/foo/bar?a=b").Get(url.Values{"foo": {"bar"}}).Json()
-
-	if client.Response.StatusCode != 200 {
-		t.Errorf("Expecting 200, got %d\n", client.Response.StatusCode)
+	if err != nil {
+		t.Errorf("Failed test: %s\n", err.Error())
 	}
 
-	if data.Get("method") != "GET" {
-		t.Errorf("Expecting GET, got %s\n", data.Get("method"))
+	fmt.Printf("%v\n", buf)
+
+	if buf["method"].(string) != "PUT" {
+		t.Errorf("Test failed.")
 	}
 
-	if data.Get("url") != "/foo/bar?a=b&foo=bar" {
-		t.Errorf("Expecting /foo/bar?a=b&foo=bar, got %s\n", data.Get("url"))
+	if buf["post"].(map[string]interface{})["bar"].([]interface{})[0].(string) != "brown fox" {
+		t.Errorf("Test failed.")
 	}
 
-	if to.List(data.Get("header/Foo"))[0] != "Bar" {
-		t.Errorf("Expecting Bar, got %s\n", to.List(data.Get("header/Foo"))[0])
+	if buf["get"].(map[string]interface{})["foo"].([]interface{})[0].(string) != "the quick" {
+		t.Errorf("Test failed.")
 	}
 
-	if to.List(data.Get("header/User-Agent"))[0] != "gosexy/rest" {
-		t.Errorf("Expecting gosexy/rest, got %s\n", to.List(data.Get("header/User-Agent"))[0])
+	err = client.Put(&buf, "/search?foo=the+quick", nil)
+
+	if err != nil {
+		t.Errorf("Failed test: %s\n", err.Error())
 	}
 
+	if buf["method"].(string) != "PUT" {
+		t.Errorf("Test failed.")
+	}
+
+	if buf["get"].(map[string]interface{})["foo"].([]interface{})[0].(string) != "the quick" {
+		t.Errorf("Test failed.")
+	}
+}
+
+func TestDelete(t *testing.T) {
+	var buf map[string]interface{}
+	var err error
+
+	err = client.Delete(&buf, "/search?foo=the+quick", url.Values{"bar": {"brown fox"}})
+
+	if err != nil {
+		t.Errorf("Failed test: %s\n", err.Error())
+	}
+
+	fmt.Printf("%v\n", buf)
+
+	if buf["method"].(string) != "DELETE" {
+		t.Errorf("Test failed.")
+	}
+
+	if buf["get"].(map[string]interface{})["foo"].([]interface{})[0].(string) != "the quick" {
+		t.Errorf("Test failed.")
+	}
+
+	err = client.Delete(&buf, "/search?foo=the+quick", nil)
+
+	if err != nil {
+		t.Errorf("Failed test: %s\n", err.Error())
+	}
+
+	if buf["method"].(string) != "DELETE" {
+		t.Errorf("Test failed.")
+	}
+
+	if buf["get"].(map[string]interface{})["foo"].([]interface{})[0].(string) != "the quick" {
+		t.Errorf("Test failed.")
+	}
 }
