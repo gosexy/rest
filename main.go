@@ -5,14 +5,17 @@
 package rest
 
 import (
+	"bytes"
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"net/url"
+	"path"
 	"reflect"
 	"strings"
 )
@@ -25,6 +28,16 @@ const Version = "0.3"
 var Debug = false
 
 var ioReadCloserType reflect.Type = reflect.TypeOf((*io.ReadCloser)(nil)).Elem()
+
+type File struct {
+	Name string
+	io.Reader
+}
+
+type MultipartBody struct {
+	contentType string
+	buf         io.Reader
+}
 
 /*
 	Client structure
@@ -43,14 +56,48 @@ func New(prefix string) *Client {
 	return self
 }
 
-func (self *Client) newRequest(buf interface{}, method string, addr *url.URL, body *strings.Reader) error {
+func (self *Client) newMultipartRequest(buf interface{}, method string, addr *url.URL, body *MultipartBody) error {
 	var res *http.Response
 	var req *http.Request
 
 	var err error
 
-	fmt.Printf("READER: %v\n", body)
-	fmt.Printf("URL: %v\n", addr.String())
+	if body == nil {
+		return fmt.Errorf("Could not create a multipart request without a body.")
+	} else {
+		req, err = http.NewRequest(
+			method,
+			addr.String(),
+			body.buf,
+		)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", body.contentType)
+
+	res, err = self.Do(req)
+
+	if err != nil {
+		return err
+	}
+
+	err = self.handleResponse(buf, res)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (self *Client) newRequest(buf interface{}, method string, addr *url.URL, body *strings.Reader) error {
+	var res *http.Response
+	var req *http.Request
+
+	var err error
 
 	if body == nil {
 		req, err = http.NewRequest(
@@ -122,6 +169,26 @@ func (self *Client) Delete(buf interface{}, path string, data url.Values) error 
 	return self.newRequest(buf, "DELETE", addr, body)
 }
 
+func (self *Client) PutMultipart(buf interface{}, uri string, data *MultipartBody) error {
+	addr, err := url.Parse(self.Prefix + strings.TrimLeft(uri, "/"))
+
+	if err != nil {
+		return err
+	}
+
+	return self.newMultipartRequest(buf, "PUT", addr, data)
+}
+
+func (self *Client) PostMultipart(buf interface{}, uri string, data *MultipartBody) error {
+	addr, err := url.Parse(self.Prefix + strings.TrimLeft(uri, "/"))
+
+	if err != nil {
+		return err
+	}
+
+	return self.newMultipartRequest(buf, "POST", addr, data)
+}
+
 func (self *Client) Post(buf interface{}, path string, data url.Values) error {
 	var body *strings.Reader = nil
 
@@ -154,53 +221,46 @@ func (self *Client) Get(buf interface{}, path string, data url.Values) error {
 	}
 
 	return self.newRequest(buf, "GET", addr, nil)
-
 }
 
-/*
-func (self *Client) CreateMultipart(params url.Values, files map[string][]io.ReadCloser) {
+func (self *Client) CreateMultipartBody(params url.Values, filemap map[string][]File) (*MultipartBody, error) {
 
 	buf := bytes.NewBuffer(nil)
+
 	body := multipart.NewWriter(buf)
 
-	for key, file := range files {
+	if filemap != nil {
+		for key, files := range filemap {
 
-		writer, err := body.CreateFormFile("media[]", path.Base(file))
+			for _, file := range files {
 
-		if err != nil {
-			return nil, err
+				writer, err := body.CreateFormFile(key, path.Base(file.Name))
+
+				if err != nil {
+					return nil, err
+				}
+
+				_, err = io.Copy(writer, file.Reader)
+
+				if err != nil {
+					return nil, err
+				}
+			}
 		}
-
-		reader, err := os.Open(file)
-
-		if err != nil {
-			return nil, err
-		}
-
-		io.Copy(writer, reader)
-
-		reader.Close()
 	}
 
-	params = merge(url.Values{"status": {status}}, params)
-
-	//fullURI := Prefix + strings.Trim(endpoint, "/") + ".json"
-
-	//self.client.SignParam(self.auth, "POST", fullURI, params)
-
-	for k, _ := range params {
-		for _, value := range params[k] {
-			body.WriteField(k, value)
+	if params != nil {
+		for key, _ := range params {
+			for _, value := range params[key] {
+				body.WriteField(key, value)
+			}
 		}
 	}
 
 	body.Close()
 
-	//fmt.Printf("%v\n", buf)
-
-	req := &multipartBody{body.FormDataContentType(), buf}
+	return &MultipartBody{body.FormDataContentType(), buf}, nil
 }
-*/
 
 func (self *Client) Body(res *http.Response) (io.ReadCloser, error) {
 	var body io.ReadCloser

@@ -3,9 +3,12 @@ package rest
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gosexy/dig"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
+	"path"
 	"testing"
 	"time"
 )
@@ -34,6 +37,13 @@ func init() {
 			}
 			if r.Body != nil {
 				response["body"], _ = ioutil.ReadAll(r.Body)
+			}
+			if r.MultipartForm != nil {
+				files := map[string]interface{}{}
+				for key, val := range r.MultipartForm.File {
+					files[key] = val
+				}
+				response["files"] = files
 			}
 			data, err := json.Marshal(response)
 			if err == nil {
@@ -198,4 +208,152 @@ func TestDelete(t *testing.T) {
 	if buf["get"].(map[string]interface{})["foo"].([]interface{})[0].(string) != "the quick" {
 		t.Errorf("Test failed.")
 	}
+}
+
+func TestPostMultipart(t *testing.T) {
+	fileMain, err := os.Open("main.go")
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer fileMain.Close()
+
+	files := map[string][]File{
+		"file": []File{
+			File{
+				path.Base(fileMain.Name()),
+				fileMain,
+			},
+		},
+	}
+
+	body, err := client.CreateMultipartBody(url.Values{"foo": {"bar"}}, files)
+
+	var buf map[string]interface{}
+
+	err = client.PostMultipart(&buf, "/post", body)
+
+	if buf["method"].(string) != "POST" {
+		t.Errorf("Test failed.")
+	}
+
+	if buf["files"].(map[string]interface{})["file"].([]interface{})[0].(map[string]interface{})["Filename"].(string) != "main.go" {
+		t.Errorf("Test failed.")
+	}
+
+	body, err = client.CreateMultipartBody(nil, files)
+
+	err = client.PostMultipart(&buf, "/post", body)
+
+	if buf["method"].(string) != "POST" {
+		t.Errorf("Test failed.")
+	}
+
+	if buf["files"].(map[string]interface{})["file"].([]interface{})[0].(map[string]interface{})["Filename"].(string) != "main.go" {
+		t.Errorf("Test failed.")
+	}
+
+	body, err = client.CreateMultipartBody(url.Values{"foo": {"bar"}}, nil)
+
+	err = client.PostMultipart(&buf, "/post", body)
+
+	if buf["method"].(string) != "POST" {
+		t.Errorf("Test failed.")
+	}
+
+	if buf["post"].(map[string]interface{})["foo"].([]interface{})[0].(string) != "bar" {
+		t.Errorf("Test failed.")
+	}
+}
+
+func TestPutMultipart(t *testing.T) {
+	fileMain, err := os.Open("main.go")
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer fileMain.Close()
+
+	files := map[string][]File{
+		"file": []File{
+			File{
+				path.Base(fileMain.Name()),
+				fileMain,
+			},
+		},
+	}
+
+	body, err := client.CreateMultipartBody(url.Values{"foo": {"bar"}}, files)
+
+	var buf map[string]interface{}
+
+	err = client.PutMultipart(&buf, "/put", body)
+
+	if buf["method"].(string) != "PUT" {
+		t.Errorf("Test failed.")
+	}
+
+	if buf["files"].(map[string]interface{})["file"].([]interface{})[0].(map[string]interface{})["Filename"].(string) != "main.go" {
+		t.Errorf("Test failed.")
+	}
+
+	body, err = client.CreateMultipartBody(nil, files)
+
+	err = client.PutMultipart(&buf, "/put", body)
+
+	if buf["method"].(string) != "PUT" {
+		t.Errorf("Test failed.")
+	}
+
+	if buf["files"].(map[string]interface{})["file"].([]interface{})[0].(map[string]interface{})["Filename"].(string) != "main.go" {
+		t.Errorf("Test failed.")
+	}
+
+	body, err = client.CreateMultipartBody(url.Values{"foo": {"bar"}}, nil)
+
+	err = client.PutMultipart(&buf, "/put", body)
+
+	if buf["method"].(string) != "PUT" {
+		t.Errorf("Test failed.")
+	}
+
+	if buf["post"].(map[string]interface{})["foo"].([]interface{})[0].(string) != "bar" {
+		t.Errorf("Test failed.")
+	}
+}
+
+func TestSugar(t *testing.T) {
+	fileMain, err := os.Open("main.go")
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer fileMain.Close()
+
+	files := map[string][]File{
+		"file": []File{
+			File{
+				path.Base(fileMain.Name()),
+				fileMain,
+			},
+		},
+	}
+
+	body, err := client.CreateMultipartBody(url.Values{"foo": {"bar"}}, files)
+
+	var buf map[string]interface{}
+
+	err = client.PostMultipart(&buf, "/post", body)
+
+	var s string
+
+	dig.Get(&buf, &s, "files", "file", 0, "Filename")
+
+	if s != "main.go" {
+		t.Errorf("Test failed.")
+	}
+
 }
