@@ -14,7 +14,7 @@ import (
 )
 
 const testServer = "127.0.0.1:62621"
-const reqForm = 1024 * 1024 * 8
+const reqForm = 16777216
 
 var client *Client
 
@@ -61,7 +61,11 @@ func TestEnableDebug(t *testing.T) {
 }
 
 func TestInit(t *testing.T) {
-	client = New("http://" + testServer)
+	var err error
+	client, err = New("http://" + testServer)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
 }
 
 func TestGet(t *testing.T) {
@@ -71,29 +75,29 @@ func TestGet(t *testing.T) {
 	err = client.Get(&buf, "/search", url.Values{"term": {"some string"}})
 
 	if err != nil {
-		t.Errorf("Failed test: %s\n", err.Error())
+		t.Fatalf("Failed test: %s\n", err.Error())
 	}
 
 	if buf["method"].(string) != "GET" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 
 	if buf["url"].(string) != "/search?term=some+string" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 
 	if buf["get"].(map[string]interface{})["term"].([]interface{})[0].(string) != "some string" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 
 	err = client.Get(&buf, "/search", nil)
 
 	if err != nil {
-		t.Errorf("Failed test: %s\n", err.Error())
+		t.Fatalf("Failed test: %s\n", err.Error())
 	}
 
 	if buf["method"].(string) != "GET" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 }
 
@@ -104,35 +108,35 @@ func TestPost(t *testing.T) {
 	err = client.Post(&buf, "/search?foo=the+quick", url.Values{"bar": {"brown fox"}})
 
 	if err != nil {
-		t.Errorf("Failed test: %s\n", err.Error())
+		t.Fatalf("Failed test: %s\n", err.Error())
 	}
 
 	fmt.Printf("%v\n", buf)
 
 	if buf["method"].(string) != "POST" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 
 	if buf["post"].(map[string]interface{})["bar"].([]interface{})[0].(string) != "brown fox" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 
 	if buf["get"].(map[string]interface{})["foo"].([]interface{})[0].(string) != "the quick" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 
 	err = client.Post(&buf, "/search?foo=the+quick", nil)
 
 	if err != nil {
-		t.Errorf("Failed test: %s\n", err.Error())
+		t.Fatalf("Failed test: %s\n", err.Error())
 	}
 
 	if buf["method"].(string) != "POST" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 
 	if buf["get"].(map[string]interface{})["foo"].([]interface{})[0].(string) != "the quick" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 }
 
@@ -143,35 +147,35 @@ func TestPut(t *testing.T) {
 	err = client.Put(&buf, "/search?foo=the+quick", url.Values{"bar": {"brown fox"}})
 
 	if err != nil {
-		t.Errorf("Failed test: %s\n", err.Error())
+		t.Fatalf("Failed test: %s\n", err.Error())
 	}
 
 	fmt.Printf("%v\n", buf)
 
 	if buf["method"].(string) != "PUT" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 
 	if buf["post"].(map[string]interface{})["bar"].([]interface{})[0].(string) != "brown fox" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 
 	if buf["get"].(map[string]interface{})["foo"].([]interface{})[0].(string) != "the quick" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 
 	err = client.Put(&buf, "/search?foo=the+quick", nil)
 
 	if err != nil {
-		t.Errorf("Failed test: %s\n", err.Error())
+		t.Fatalf("Failed test: %s\n", err.Error())
 	}
 
 	if buf["method"].(string) != "PUT" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 
 	if buf["get"].(map[string]interface{})["foo"].([]interface{})[0].(string) != "the quick" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 }
 
@@ -182,31 +186,31 @@ func TestDelete(t *testing.T) {
 	err = client.Delete(&buf, "/search?foo=the+quick", url.Values{"bar": {"brown fox"}})
 
 	if err != nil {
-		t.Errorf("Failed test: %s\n", err.Error())
+		t.Fatalf("Failed test: %s\n", err.Error())
 	}
 
 	fmt.Printf("%v\n", buf)
 
 	if buf["method"].(string) != "DELETE" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 
 	if buf["get"].(map[string]interface{})["foo"].([]interface{})[0].(string) != "the quick" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 
 	err = client.Delete(&buf, "/search?foo=the+quick", nil)
 
 	if err != nil {
-		t.Errorf("Failed test: %s\n", err.Error())
+		t.Fatalf("Failed test: %s\n", err.Error())
 	}
 
 	if buf["method"].(string) != "DELETE" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 
 	if buf["get"].(map[string]interface{})["foo"].([]interface{})[0].(string) != "the quick" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 }
 
@@ -235,11 +239,11 @@ func TestPostMultipart(t *testing.T) {
 	err = client.PostMultipart(&buf, "/post", body)
 
 	if buf["method"].(string) != "POST" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 
 	if buf["files"].(map[string]interface{})["file"].([]interface{})[0].(map[string]interface{})["Filename"].(string) != "main.go" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 
 	body, err = client.CreateMultipartBody(nil, files)
@@ -247,11 +251,11 @@ func TestPostMultipart(t *testing.T) {
 	err = client.PostMultipart(&buf, "/post", body)
 
 	if buf["method"].(string) != "POST" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 
 	if buf["files"].(map[string]interface{})["file"].([]interface{})[0].(map[string]interface{})["Filename"].(string) != "main.go" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 
 	body, err = client.CreateMultipartBody(url.Values{"foo": {"bar"}}, nil)
@@ -259,11 +263,11 @@ func TestPostMultipart(t *testing.T) {
 	err = client.PostMultipart(&buf, "/post", body)
 
 	if buf["method"].(string) != "POST" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 
 	if buf["post"].(map[string]interface{})["foo"].([]interface{})[0].(string) != "bar" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 }
 
@@ -292,11 +296,11 @@ func TestPutMultipart(t *testing.T) {
 	err = client.PutMultipart(&buf, "/put", body)
 
 	if buf["method"].(string) != "PUT" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 
 	if buf["files"].(map[string]interface{})["file"].([]interface{})[0].(map[string]interface{})["Filename"].(string) != "main.go" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 
 	body, err = client.CreateMultipartBody(nil, files)
@@ -304,11 +308,11 @@ func TestPutMultipart(t *testing.T) {
 	err = client.PutMultipart(&buf, "/put", body)
 
 	if buf["method"].(string) != "PUT" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 
 	if buf["files"].(map[string]interface{})["file"].([]interface{})[0].(map[string]interface{})["Filename"].(string) != "main.go" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 
 	body, err = client.CreateMultipartBody(url.Values{"foo": {"bar"}}, nil)
@@ -316,11 +320,11 @@ func TestPutMultipart(t *testing.T) {
 	err = client.PutMultipart(&buf, "/put", body)
 
 	if buf["method"].(string) != "PUT" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 
 	if buf["post"].(map[string]interface{})["foo"].([]interface{})[0].(string) != "bar" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 }
 
@@ -353,7 +357,19 @@ func TestSugar(t *testing.T) {
 	dig.Get(&buf, &s, "files", "file", 0, "Filename")
 
 	if s != "main.go" {
-		t.Errorf("Test failed.")
+		t.Fatalf("Test failed.")
 	}
 
+}
+
+func TestDefaultClient(t *testing.T) {
+	var err error
+	var buf []byte
+	err = Get(&buf, "https://github.com/", nil)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	if len(buf) == 0 {
+		t.Fatalf("Expecting something in buf.")
+	}
 }

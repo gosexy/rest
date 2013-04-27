@@ -40,7 +40,7 @@ type MultipartBody struct {
 }
 
 /*
-	Client structure
+	Client structure.
 */
 type Client struct {
 	Header http.Header
@@ -48,13 +48,23 @@ type Client struct {
 }
 
 /*
+	Default client for requests.
+*/
+var DefaultClient = &Client{}
+
+/*
 	Creates a new client, all relative URLs this client receives will be prefixed
 	by the given URL.
 */
-func New(prefix string) *Client {
+func New(prefix string) (*Client, error) {
+	var err error
+	_, err = url.Parse(prefix)
+	if err != nil {
+		return nil, fmt.Errorf("Variable prefix must be a valid URL: %s", err.Error())
+	}
 	self := &Client{}
 	self.Prefix = strings.TrimRight(prefix, "/") + "/"
-	return self
+	return self, nil
 }
 
 func (self *Client) newMultipartRequest(buf interface{}, method string, addr *url.URL, body *MultipartBody) error {
@@ -415,7 +425,33 @@ func (self *Client) Do(req *http.Request) (*http.Response, error) {
 			}
 		}
 
+		log.Printf("\n")
+
 	}
 
 	return res, err
+}
+
+func Get(dest interface{}, uri string, data url.Values) error {
+	return DefaultClient.Get(dest, uri, data)
+}
+
+func Post(dest interface{}, uri string, data url.Values) error {
+	return DefaultClient.Post(dest, uri, data)
+}
+
+func Put(dest interface{}, uri string, data url.Values) error {
+	return DefaultClient.Put(dest, uri, data)
+}
+
+func Delete(dest interface{}, uri string, data url.Values) error {
+	return DefaultClient.Delete(dest, uri, data)
+}
+
+func PostMultipart(dest interface{}, uri string, data *MultipartBody) error {
+	return DefaultClient.PostMultipart(dest, uri, data)
+}
+
+func PutMultipart(dest interface{}, uri string, data *MultipartBody) error {
+	return DefaultClient.PutMultipart(dest, uri, data)
 }
