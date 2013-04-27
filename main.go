@@ -48,7 +48,8 @@ type Client struct {
 }
 
 /*
-	Creates a new client with a prefix URL.
+	Creates a new client, all relative URLs this client receives will be prefixed
+	by the given URL.
 */
 func New(prefix string) *Client {
 	self := &Client{}
@@ -137,6 +138,9 @@ func (self *Client) newRequest(buf interface{}, method string, addr *url.URL, bo
 	return nil
 }
 
+/*
+	Executes a PUT request and stores the response into the buf pointer.
+*/
 func (self *Client) Put(buf interface{}, path string, data url.Values) error {
 	var body *strings.Reader = nil
 
@@ -153,6 +157,9 @@ func (self *Client) Put(buf interface{}, path string, data url.Values) error {
 	return self.newRequest(buf, "PUT", addr, body)
 }
 
+/*
+	Executes a DELETE request and stores the response into the given buf pointer.
+*/
 func (self *Client) Delete(buf interface{}, path string, data url.Values) error {
 	var body *strings.Reader = nil
 
@@ -169,6 +176,10 @@ func (self *Client) Delete(buf interface{}, path string, data url.Values) error 
 	return self.newRequest(buf, "DELETE", addr, body)
 }
 
+/*
+	Executes a multipart PUT request and stores the response into the given buf
+	pointer.
+*/
 func (self *Client) PutMultipart(buf interface{}, uri string, data *MultipartBody) error {
 	addr, err := url.Parse(self.Prefix + strings.TrimLeft(uri, "/"))
 
@@ -179,6 +190,10 @@ func (self *Client) PutMultipart(buf interface{}, uri string, data *MultipartBod
 	return self.newMultipartRequest(buf, "PUT", addr, data)
 }
 
+/*
+	Executes a multipart POST request and stores the response into the given buf
+	pointer.
+*/
 func (self *Client) PostMultipart(buf interface{}, uri string, data *MultipartBody) error {
 	addr, err := url.Parse(self.Prefix + strings.TrimLeft(uri, "/"))
 
@@ -189,6 +204,9 @@ func (self *Client) PostMultipart(buf interface{}, uri string, data *MultipartBo
 	return self.newMultipartRequest(buf, "POST", addr, data)
 }
 
+/*
+	Executes a POST request and stores the response into the given buf pointer.
+*/
 func (self *Client) Post(buf interface{}, path string, data url.Values) error {
 	var body *strings.Reader = nil
 
@@ -205,6 +223,9 @@ func (self *Client) Post(buf interface{}, path string, data url.Values) error {
 	return self.newRequest(buf, "POST", addr, body)
 }
 
+/*
+	Executes a GET request and stores the response into the given buf pointer.
+*/
 func (self *Client) Get(buf interface{}, path string, data url.Values) error {
 	addr, err := url.Parse(self.Prefix + strings.TrimLeft(path, "/"))
 
@@ -223,6 +244,9 @@ func (self *Client) Get(buf interface{}, path string, data url.Values) error {
 	return self.newRequest(buf, "GET", addr, nil)
 }
 
+/*
+	Creates a *MultipartBody based on the given params and map of files.
+*/
 func (self *Client) CreateMultipartBody(params url.Values, filemap map[string][]File) (*MultipartBody, error) {
 
 	buf := bytes.NewBuffer(nil)
@@ -262,6 +286,9 @@ func (self *Client) CreateMultipartBody(params url.Values, filemap map[string][]
 	return &MultipartBody{body.FormDataContentType(), buf}, nil
 }
 
+/*
+	Returns the body of the request as a io.ReadCloser
+*/
 func (self *Client) Body(res *http.Response) (io.ReadCloser, error) {
 	var body io.ReadCloser
 	var err error
