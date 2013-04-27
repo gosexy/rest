@@ -28,6 +28,7 @@ const Version = "0.3"
 var Debug = false
 
 var ioReadCloserType reflect.Type = reflect.TypeOf((*io.ReadCloser)(nil)).Elem()
+var ioReaderType reflect.Type = reflect.TypeOf((*io.Reader)(nil)).Elem()
 
 type File struct {
 	Name string
@@ -89,7 +90,7 @@ func (self *Client) newMultipartRequest(buf interface{}, method string, addr *ur
 
 	req.Header.Set("Content-Type", body.contentType)
 
-	res, err = self.Do(req)
+	res, err = self.do(req)
 
 	if err != nil {
 		return err
@@ -133,7 +134,7 @@ func (self *Client) newRequest(buf interface{}, method string, addr *url.URL, bo
 		return err
 	}
 
-	res, err = self.Do(req)
+	res, err = self.do(req)
 
 	if err != nil {
 		return err
@@ -299,7 +300,7 @@ func (self *Client) CreateMultipartBody(params url.Values, filemap map[string][]
 /*
 	Returns the body of the request as a io.ReadCloser
 */
-func (self *Client) Body(res *http.Response) (io.ReadCloser, error) {
+func (self *Client) body(res *http.Response) (io.ReadCloser, error) {
 	var body io.ReadCloser
 	var err error
 
@@ -362,7 +363,8 @@ func fromBytes(dst reflect.Value, buf []byte) error {
 }
 
 func (self *Client) handleResponse(dst interface{}, res *http.Response) error {
-	body, err := self.Body(res)
+
+	body, err := self.body(res)
 
 	if err != nil {
 		return err
@@ -380,6 +382,14 @@ func (self *Client) handleResponse(dst interface{}, res *http.Response) error {
 	switch rv.Elem().Type() {
 	case ioReadCloserType:
 		rv.Elem().Set(reflect.ValueOf(body))
+	/*
+		case ioReaderType:
+			buf, err := ioutil.ReadAll(body)
+			if err != nil {
+				return err
+			}
+			rv.Elem().Set(reflect.ValueOf(buf))
+	*/
 	default:
 		buf, err := ioutil.ReadAll(body)
 
@@ -397,7 +407,7 @@ func (self *Client) handleResponse(dst interface{}, res *http.Response) error {
 	return nil
 }
 
-func (self *Client) Do(req *http.Request) (*http.Response, error) {
+func (self *Client) do(req *http.Request) (*http.Response, error) {
 	client := &http.Client{}
 
 	// Copying headers

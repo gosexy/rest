@@ -362,6 +362,22 @@ func TestSugar(t *testing.T) {
 
 }
 
+/*
+func TestReader(t *testing.T) {
+	var err error
+	reader := bytes.NewBuffer(nil)
+	err = client.Post(&reader, "/hello", url.Values{ "hello": { "world" }})
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	buf, err := ioutil.ReadAll(reader)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	fmt.Printf("%v\n", buf)
+}
+*/
+
 func TestDefaultClient(t *testing.T) {
 	var err error
 	var buf []byte
