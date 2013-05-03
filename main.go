@@ -28,7 +28,7 @@ const Version = "0.3"
 var Debug = false
 
 var ioReadCloserType reflect.Type = reflect.TypeOf((*io.ReadCloser)(nil)).Elem()
-var ioReaderType reflect.Type = reflect.TypeOf((*io.Reader)(nil)).Elem()
+var bytesBufferType reflect.Type = reflect.TypeOf((**bytes.Buffer)(nil)).Elem()
 
 type File struct {
 	Name string
@@ -382,14 +382,16 @@ func (self *Client) handleResponse(dst interface{}, res *http.Response) error {
 	switch rv.Elem().Type() {
 	case ioReadCloserType:
 		rv.Elem().Set(reflect.ValueOf(body))
-	/*
-		case ioReaderType:
-			buf, err := ioutil.ReadAll(body)
-			if err != nil {
-				return err
-			}
-			rv.Elem().Set(reflect.ValueOf(buf))
-	*/
+	case bytesBufferType:
+		buf, err := ioutil.ReadAll(body)
+
+		if err != nil {
+			return err
+		}
+
+		dst := bytes.NewBuffer(buf)
+
+		rv.Elem().Set(reflect.ValueOf(dst))
 	default:
 		buf, err := ioutil.ReadAll(body)
 
