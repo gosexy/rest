@@ -14,6 +14,7 @@ import (
 	"log"
 	"mime/multipart"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"path"
 	"reflect"
@@ -29,6 +30,18 @@ var Debug = false
 
 var ioReadCloserType reflect.Type = reflect.TypeOf((*io.ReadCloser)(nil)).Elem()
 var bytesBufferType reflect.Type = reflect.TypeOf((**bytes.Buffer)(nil)).Elem()
+var restResponseType reflect.Type = reflect.TypeOf((*Response)(nil)).Elem()
+
+type Response struct {
+	Status        string
+	StatusCode    int
+	Proto         string
+	ProtoMajor    int
+	ProtoMinor    int
+	ContentLength int64
+	http.Header
+	Body []byte
+}
 
 type File struct {
 	Name string
@@ -41,11 +54,16 @@ type MultipartBody struct {
 }
 
 /*
+	Cookie jar
+*/
+
+/*
 	Client structure.
 */
 type Client struct {
-	Header http.Header
-	Prefix string
+	Header    http.Header
+	Prefix    string
+	CookieJar *cookiejar.Jar
 }
 
 /*
@@ -65,6 +83,11 @@ func New(prefix string) (*Client, error) {
 	}
 	self := &Client{}
 	self.Prefix = strings.TrimRight(prefix, "/") + "/"
+	self.Header = http.Header{}
+	self.CookieJar, err = cookiejar.New(nil)
+	if err != nil {
+		return nil, err
+	}
 	return self, nil
 }
 
@@ -380,6 +403,26 @@ func (self *Client) handleResponse(dst interface{}, res *http.Response) error {
 	}
 
 	switch rv.Elem().Type() {
+	case restResponseType:
+		var err error
+
+		r := Response{}
+
+		r.Body, err = ioutil.ReadAll(body)
+
+		if err != nil {
+			return err
+		}
+
+		r.Header = res.Header
+		r.Status = res.Status
+		r.StatusCode = res.StatusCode
+		r.Proto = res.Proto
+		r.ProtoMajor = res.ProtoMajor
+		r.ProtoMinor = res.ProtoMinor
+		r.ContentLength = res.ContentLength
+
+		rv.Elem().Set(reflect.ValueOf(r))
 	case ioReadCloserType:
 		rv.Elem().Set(reflect.ValueOf(body))
 	case bytesBufferType:
@@ -411,6 +454,11 @@ func (self *Client) handleResponse(dst interface{}, res *http.Response) error {
 
 func (self *Client) do(req *http.Request) (*http.Response, error) {
 	client := &http.Client{}
+
+	// Adding cookie jar
+	if self.CookieJar != nil {
+		client.Jar = self.CookieJar
+	}
 
 	// Copying headers
 	for k, _ := range self.Header {
