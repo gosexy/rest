@@ -1,4 +1,5 @@
-// This is an example for the gosexy/rest package.
+// This is an example for the gosexy/rest package that reads a Wikipedia page
+// and counts the ocurrences of the word "Go".
 
 package main
 
@@ -37,7 +38,7 @@ func main() {
 
 	} else {
 		// Yes, we had an error.
-		log.Printf(err.Error())
+		log.Printf("Request failed: %s", err.Error())
 	}
 
 }

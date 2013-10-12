@@ -1,9 +1,9 @@
-// This is an example for the gosexy/rest package.
+// This is an example for the gosexy/rest package that downloads a JPEG image
+// and opens it with the image/jpeg package.
 
 package main
 
 import (
-	// Import the gosexy/rest package.
 	"bytes"
 	"image/jpeg"
 	"log"
@@ -18,7 +18,7 @@ func main() {
 	// You may want to see the full client debug.
 	// rest.Debug = true
 
-	// Destination variable.
+	// Destination variable (an empty bytes.Buffer).
 	buf := bytes.NewBuffer(nil)
 
 	// A nice gopher image.
@@ -33,9 +33,10 @@ func main() {
 	// Was there any error?
 	if err == nil {
 
-		// Printing response dump.
+		// Printing some response data.
 		log.Printf("Got response with size %d\n", buf.Len())
 
+		// Trying to open the buffer with image/jpeg.
 		log.Printf("Trying to decode JPEG file.\n")
 
 		img, err := jpeg.Decode(buf)
@@ -49,7 +50,7 @@ func main() {
 
 	} else {
 		// Yes, we had an error.
-		log.Printf("Error getting URL: %s", err.Error())
+		log.Printf("Request failed: %s", err.Error())
 	}
 
 }

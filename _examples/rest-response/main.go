@@ -3,7 +3,6 @@
 package main
 
 import (
-	// Import the gosexy/rest package.
 	"log"
 	"menteslibres.net/gosexy/rest"
 	"net/url"
@@ -34,13 +33,13 @@ func main() {
 		// Printing response dump.
 		log.Printf("Got response!")
 		log.Printf("Response code: %d", buf.StatusCode)
-		log.Printf("Response proto: %s", buf.Proto)
+		log.Printf("Response protocol version: %s", buf.Proto)
 		log.Printf("Response length: %d", buf.ContentLength)
 		log.Printf("Response header: %v", buf.Header)
 		log.Printf("Response body: %s", string(buf.Body))
 	} else {
 		// Yes, we had an error.
-		log.Printf("Error getting URL: %s", err.Error())
+		log.Printf("Request failed: %s", err.Error())
 	}
 
 }

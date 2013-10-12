@@ -76,7 +76,7 @@ func main() {
 
 	} else {
 		// Yes, we had an error.
-		log.Printf(err.Error())
+		log.Printf("Request failed: %s", err.Error())
 	}
 
 }

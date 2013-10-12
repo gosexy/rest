@@ -1,4 +1,5 @@
-// This is an example for the gosexy/rest package.
+// This is an example for the gosexy/rest package that issues a POST request
+// to a JSON service.
 
 package main
 
@@ -41,7 +42,7 @@ func main() {
 
 	} else {
 		// Yes, we had an error.
-		log.Printf(err.Error())
+		log.Printf("Request failed: %s", err.Error())
 	}
 
 }

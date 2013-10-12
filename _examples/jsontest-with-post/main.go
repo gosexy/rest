@@ -15,7 +15,7 @@ func main() {
 	// You may want to see the full client debug.
 	// rest.Debug = true
 
-	// Destination variable.
+	// Destination variable (a map).
 	buf := map[string]interface{}{}
 
 	// This service returns a JSON string like:
@@ -36,19 +36,19 @@ func main() {
 	// Was there any error?
 	if err == nil {
 
-		// Printing response dump.
+		// Printing response.
 		log.Printf("Got response: buf = %v\n", buf)
 
 		// Expecting a map with a single "md5" key.
 
 		if hash, ok := buf["md5"].(string); ok {
-			// What is my IP?
+			// Printing md5 hash. Of course, you don't need a REST service to generate that.
 			log.Printf("According to md5.jsontest.com, the MD5 hash of %s is %s\n", requestVariables.Get("text"), hash)
 		}
 
 	} else {
 		// Yes, we had an error.
-		log.Printf(err.Error())
+		log.Printf("Request failed: %s", err.Error())
 	}
 
 }
