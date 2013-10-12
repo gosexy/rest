@@ -259,7 +259,7 @@ func (self *Client) Get(buf interface{}, path string, data url.Values) error {
 }
 
 // Creates a *MultipartBody based on the given params and map of files.
-func (self *Client) CreateMultipartBody(params url.Values, filemap map[string][]File) (*MultipartBody, error) {
+func NewMultipartBody(params url.Values, filemap map[string][]File) (*MultipartBody, error) {
 
 	buf := bytes.NewBuffer(nil)
 

@@ -232,7 +232,7 @@ func TestPostMultipart(t *testing.T) {
 		},
 	}
 
-	body, err := client.CreateMultipartBody(url.Values{"foo": {"bar"}}, files)
+	body, err := NewMultipartBody(url.Values{"foo": {"bar"}}, files)
 
 	var buf map[string]interface{}
 
@@ -246,7 +246,7 @@ func TestPostMultipart(t *testing.T) {
 		t.Fatalf("Test failed.")
 	}
 
-	body, err = client.CreateMultipartBody(nil, files)
+	body, err = NewMultipartBody(nil, files)
 
 	err = client.PostMultipart(&buf, "/post", body)
 
@@ -258,7 +258,7 @@ func TestPostMultipart(t *testing.T) {
 		t.Fatalf("Test failed.")
 	}
 
-	body, err = client.CreateMultipartBody(url.Values{"foo": {"bar"}}, nil)
+	body, err = NewMultipartBody(url.Values{"foo": {"bar"}}, nil)
 
 	err = client.PostMultipart(&buf, "/post", body)
 
@@ -289,7 +289,7 @@ func TestPutMultipart(t *testing.T) {
 		},
 	}
 
-	body, err := client.CreateMultipartBody(url.Values{"foo": {"bar"}}, files)
+	body, err := NewMultipartBody(url.Values{"foo": {"bar"}}, files)
 
 	var buf map[string]interface{}
 
@@ -303,7 +303,7 @@ func TestPutMultipart(t *testing.T) {
 		t.Fatalf("Test failed.")
 	}
 
-	body, err = client.CreateMultipartBody(nil, files)
+	body, err = NewMultipartBody(nil, files)
 
 	err = client.PutMultipart(&buf, "/put", body)
 
@@ -315,7 +315,7 @@ func TestPutMultipart(t *testing.T) {
 		t.Fatalf("Test failed.")
 	}
 
-	body, err = client.CreateMultipartBody(url.Values{"foo": {"bar"}}, nil)
+	body, err = NewMultipartBody(url.Values{"foo": {"bar"}}, nil)
 
 	err = client.PutMultipart(&buf, "/put", body)
 
@@ -346,7 +346,7 @@ func TestSugar(t *testing.T) {
 		},
 	}
 
-	body, err := client.CreateMultipartBody(url.Values{"foo": {"bar"}}, files)
+	body, err := NewMultipartBody(url.Values{"foo": {"bar"}}, files)
 
 	var buf map[string]interface{}
 
