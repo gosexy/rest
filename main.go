@@ -21,7 +21,7 @@
   WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-// HTTP utilities for Go that makes even easier working with web services.
+// Utility package for Go that makes working with web services even easier.
 
 package rest
 
@@ -48,9 +48,11 @@ const Version = "0.3"
 // Set true to log client requests and server responses to stdout.
 var Debug = false
 
-var ioReadCloserType reflect.Type = reflect.TypeOf((*io.ReadCloser)(nil)).Elem()
-var bytesBufferType reflect.Type = reflect.TypeOf((**bytes.Buffer)(nil)).Elem()
-var restResponseType reflect.Type = reflect.TypeOf((*Response)(nil)).Elem()
+var (
+	ioReadCloserType reflect.Type = reflect.TypeOf((*io.ReadCloser)(nil)).Elem()
+	bytesBufferType  reflect.Type = reflect.TypeOf((**bytes.Buffer)(nil)).Elem()
+	restResponseType reflect.Type = reflect.TypeOf((*Response)(nil)).Elem()
+)
 
 var (
 	ErrInvalidPrefix           = errors.New(`URL prefix is invalid: %s`)
@@ -59,6 +61,8 @@ var (
 	ErrDestinationNotAPointer  = errors.New(`Destination is not a pointer.`)
 )
 
+// Can be used as a response value, useful when you need to work with headers,
+// status codes and such.
 type Response struct {
 	Status        string
 	StatusCode    int
@@ -70,17 +74,20 @@ type Response struct {
 	Body []byte
 }
 
+// This type can be used to represent a file that you'll later upload within
+// a multipart request.
 type File struct {
 	Name string
 	io.Reader
 }
 
+// Multipart body.
 type MultipartBody struct {
 	contentType string
 	buf         io.Reader
 }
 
-// Client structure.
+// A client structure, useful in case you need to communicate with an API.
 type Client struct {
 	Header    http.Header
 	Prefix    string
@@ -189,7 +196,7 @@ func (self *Client) newRequest(buf interface{}, method string, addr *url.URL, bo
 	return nil
 }
 
-// Executes a HTTP PUT request, stores response into the buf pointer.
+// Performs a HTTP PUT request, stores response into the buf pointer.
 func (self *Client) Put(buf interface{}, path string, data url.Values) error {
 	var body *strings.Reader = nil
 
@@ -206,7 +213,7 @@ func (self *Client) Put(buf interface{}, path string, data url.Values) error {
 	return self.newRequest(buf, "PUT", addr, body)
 }
 
-// Executes a HTTP DELETE request, stores response into the buf pointer.
+// Performs a HTTP DELETE request, stores response into the buf pointer.
 func (self *Client) Delete(buf interface{}, path string, data url.Values) error {
 	var body *strings.Reader = nil
 
@@ -223,7 +230,7 @@ func (self *Client) Delete(buf interface{}, path string, data url.Values) error 
 	return self.newRequest(buf, "DELETE", addr, body)
 }
 
-// Executes a multipart HTTP PUT request, stores response into the buf pointer.
+// Performs a multipart HTTP PUT request, stores response into the buf pointer.
 func (self *Client) PutMultipart(buf interface{}, uri string, data *MultipartBody) error {
 	addr, err := url.Parse(self.Prefix + strings.TrimLeft(uri, "/"))
 
@@ -234,7 +241,7 @@ func (self *Client) PutMultipart(buf interface{}, uri string, data *MultipartBod
 	return self.newMultipartRequest(buf, "PUT", addr, data)
 }
 
-// Executes a multipart HTTP POST request, stores response into the buf pointer.
+// Performs a multipart HTTP POST request, stores response into the buf pointer.
 func (self *Client) PostMultipart(buf interface{}, uri string, data *MultipartBody) error {
 	addr, err := url.Parse(self.Prefix + strings.TrimLeft(uri, "/"))
 
@@ -245,7 +252,7 @@ func (self *Client) PostMultipart(buf interface{}, uri string, data *MultipartBo
 	return self.newMultipartRequest(buf, "POST", addr, data)
 }
 
-// Executes a HTTP POST request, stores response into the buf pointer.
+// Performs a HTTP POST request, stores response into the buf pointer.
 func (self *Client) Post(buf interface{}, path string, data url.Values) error {
 	var body *strings.Reader = nil
 
@@ -262,7 +269,7 @@ func (self *Client) Post(buf interface{}, path string, data url.Values) error {
 	return self.newRequest(buf, "POST", addr, body)
 }
 
-// Executes a HTTP GET request, stores response into the buf pointer.
+// Performs a HTTP GET request, stores response into the buf pointer.
 func (self *Client) Get(buf interface{}, path string, data url.Values) error {
 	addr, err := url.Parse(self.Prefix + strings.TrimLeft(path, "/"))
 
