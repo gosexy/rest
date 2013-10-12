@@ -81,13 +81,16 @@ type File struct {
 	io.Reader
 }
 
-// Multipart body.
+// Multipart body for multipart requests, you can't generate a MultipartBody
+// directly, use rest.NewMultipartBody() instead.
 type MultipartBody struct {
 	contentType string
 	buf         io.Reader
 }
 
-// A client structure, useful in case you need to communicate with an API.
+// A client, useful in case you need to communicate with an API and you'd like
+// to use the same prefix for all of your requests or in scenarios where it
+// would be handy to keep a session cookie.
 type Client struct {
 	Header    http.Header
 	Prefix    string
