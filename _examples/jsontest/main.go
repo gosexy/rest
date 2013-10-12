@@ -11,6 +11,9 @@ import (
 
 func main() {
 
+	// You may want to see the full client debug.
+	// rest.Debug = true
+
 	// Destination variable.
 	buf := map[string]interface{}{}
 
