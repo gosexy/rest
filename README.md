@@ -22,7 +22,7 @@ buf := bytes.NewBuffer(nil)
 rest.Get(&buf, "http://golang.org", nil)
 ```
 
-And it does even support JSON (for JSON formatted) documents.
+It does also support JSON (for JSON formatted documents).
 
 ```go
 buf := map[string]interface{}
@@ -34,8 +34,8 @@ rest.Get(&buf, "http://ip.jsontest.com", nil)
 fmt.Printf("Got IP: %s", buf["ip"].(string))
 ```
 
-And if you need the whole document with fulls headers and response code, a
-`rest.Response` type may come in handy:
+And if you need the whole document with complete headers and response code, a
+`rest.Response` type is also provided:
 
 ```go
 type Response struct {
@@ -57,7 +57,7 @@ rest.Get(&buf, "https://api.twitter.com/v1/foo.json", nil)
 
 ## Getting gosexy/rest
 
-Intall this package as usual:
+You can install this package as usual:
 
 ```
 go get -u menteslibres.net/gosexy/rest
