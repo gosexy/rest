@@ -177,7 +177,9 @@ func (self *Client) newRequest(buf interface{}, method string, addr *url.URL, bo
 
 	switch method {
 	case "POST", "PUT":
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+		if req.Header.Get("Content-Type") == "" {
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+		}
 	}
 
 	if err != nil {
@@ -253,6 +255,23 @@ func (self *Client) PostMultipart(buf interface{}, uri string, data *MultipartBo
 	}
 
 	return self.newMultipartRequest(buf, "POST", addr, data)
+}
+
+// Performs a HTTP POST request, stores response into the buf pointer.
+func (self *Client) PostRaw(buf interface{}, path string, data []byte) error {
+	var body *strings.Reader = nil
+
+	addr, err := url.Parse(self.Prefix + strings.TrimLeft(path, "/"))
+
+	if err != nil {
+		return err
+	}
+
+	if data != nil {
+		body = strings.NewReader(string(data))
+	}
+
+	return self.newRequest(buf, "POST", addr, body)
 }
 
 // Performs a HTTP POST request, stores response into the buf pointer.
