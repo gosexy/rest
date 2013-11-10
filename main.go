@@ -430,6 +430,8 @@ func (self *Client) handleResponse(dst interface{}, res *http.Response) error {
 		return ErrDestinationNotAPointer
 	}
 
+	t := res.Header.Get("Content-Type")
+
 	switch rv.Elem().Type() {
 	case restResponseType:
 		var err error
@@ -468,6 +470,13 @@ func (self *Client) handleResponse(dst interface{}, res *http.Response) error {
 
 		if err != nil {
 			return err
+		}
+
+		if strings.HasPrefix(t, "application/json") == true {
+			if rv.Elem().Kind() == reflect.Struct || rv.Elem().Kind() == reflect.Map {
+				err = json.Unmarshal(buf, dst)
+				return err
+			}
 		}
 
 		err = fromBytes(rv.Elem(), buf)
