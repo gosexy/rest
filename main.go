@@ -502,6 +502,11 @@ func (self *Client) do(req *http.Request) (*http.Response, error) {
 		req.Header.Set(k, self.Header.Get(k))
 	}
 
+	if req.Body == nil {
+		req.Header.Del("Content-Type")
+		req.Header.Del("Content-Length")
+	}
+
 	res, err := client.Do(req)
 
 	if Debug == true {
