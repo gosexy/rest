@@ -80,7 +80,7 @@ func init() {
 }
 
 func TestEnableDebug(t *testing.T) {
-	Debug = true
+	debug = true
 }
 
 func TestInit(t *testing.T) {

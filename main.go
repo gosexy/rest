@@ -38,6 +38,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"os"
 	"path"
 	"reflect"
 	"strings"
@@ -45,8 +46,7 @@ import (
 
 const Version = "0.3"
 
-// Set true to log client requests and server responses to stdout.
-var Debug = false
+var debug = false
 
 var (
 	ioReadCloserType reflect.Type = reflect.TypeOf((*io.ReadCloser)(nil)).Elem()
@@ -99,6 +99,12 @@ type Client struct {
 
 // Default client
 var DefaultClient = &Client{}
+
+func init() {
+	if os.Getenv("REST_DEBUG") != "" {
+		debug = true
+	}
+}
 
 // Creates a new client, relative URLs will be prefixed with the given prefix
 // value
@@ -440,6 +446,10 @@ func (self *Client) handleResponse(dst interface{}, res *http.Response) error {
 
 		r.Body, err = ioutil.ReadAll(body)
 
+		if debug == true {
+			log.Printf("Body:\n%s\n", string(r.Body))
+		}
+
 		if err != nil {
 			return err
 		}
@@ -458,6 +468,10 @@ func (self *Client) handleResponse(dst interface{}, res *http.Response) error {
 	case bytesBufferType:
 		buf, err := ioutil.ReadAll(body)
 
+		if debug == true {
+			log.Printf("Body:\n%s\n", string(buf))
+		}
+
 		if err != nil {
 			return err
 		}
@@ -467,6 +481,10 @@ func (self *Client) handleResponse(dst interface{}, res *http.Response) error {
 		rv.Elem().Set(reflect.ValueOf(dst))
 	default:
 		buf, err := ioutil.ReadAll(body)
+
+		if debug == true {
+			log.Printf("Body:\n%s\n", string(buf))
+		}
 
 		if err != nil {
 			return err
@@ -509,7 +527,7 @@ func (self *Client) do(req *http.Request) (*http.Response, error) {
 
 	res, err := client.Do(req)
 
-	if Debug == true {
+	if debug == true {
 
 		log.Printf("Fetching %v\n", req.URL.String())
 
@@ -528,7 +546,6 @@ func (self *Client) do(req *http.Request) (*http.Response, error) {
 		}
 
 		log.Printf("\n")
-
 	}
 
 	return res, err
