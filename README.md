@@ -24,6 +24,9 @@ rest.Get(&buf, "http://golang.org", nil)
 
 It does also support JSON (for JSON formatted documents).
 
+Note: Response header `Content-Type: application/json` is mandatory for this
+type of automatic decoding.
+
 ```go
 buf := map[string]interface{}
 

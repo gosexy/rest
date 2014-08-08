@@ -23,7 +23,6 @@ package rest
 
 import (
 	"encoding/json"
-	//"fmt"
 	"io/ioutil"
 	"menteslibres.net/gosexy/dig"
 	"net/http"
@@ -59,6 +58,9 @@ func init() {
 			if r.Body != nil {
 				response["body"], _ = ioutil.ReadAll(r.Body)
 			}
+
+			w.Header().Set("Content-Type", "application/json")
+
 			if r.MultipartForm != nil {
 				files := map[string]interface{}{}
 				for key, val := range r.MultipartForm.File {
@@ -81,7 +83,7 @@ func TestInit(t *testing.T) {
 	var err error
 	client, err = New("http://" + testServer)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err)
 	}
 }
 
@@ -385,11 +387,11 @@ func TestReader(t *testing.T) {
 	reader := bytes.NewBuffer(nil)
 	err = client.Post(&reader, "/hello", url.Values{ "hello": { "world" }})
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err)
 	}
 	buf, err := ioutil.ReadAll(reader)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err)
 	}
 	fmt.Printf("%v\n", buf)
 }
@@ -400,7 +402,7 @@ func TestDefaultClient(t *testing.T) {
 	var buf []byte
 	err = Get(&buf, "https://github.com/", nil)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err)
 	}
 	if len(buf) == 0 {
 		t.Fatalf("Expecting something in buf.")
@@ -414,7 +416,7 @@ func TestGetJSONMap(t *testing.T) {
 	err = Get(&res, "http://ip.jsontest.com", nil)
 
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err)
 	}
 
 	if _, ok := res["ip"]; ok == false {
@@ -432,10 +434,9 @@ func TestGetStruct(t *testing.T) {
 	}
 
 	var res ip_t
-	err = Get(&res, "http://ip.jsontest.com", nil)
 
-	if err != nil {
-		t.Fatalf(err.Error())
+	if err = Get(&res, "http://ip.jsontest.com", nil); err != nil {
+		t.Fatal(err)
 	}
 
 	if res.IP == "" {
@@ -443,4 +444,44 @@ func TestGetStruct(t *testing.T) {
 	}
 
 	t.Logf("Your IP address is: %s", res.IP)
+}
+
+func TestBasicAuth(t *testing.T) {
+	var buf []byte
+
+	type basicAuth_t struct {
+		Header struct {
+			Authorization []string `json:"authorization"`
+		} `json:"header"`
+	}
+
+	var res basicAuth_t
+
+	client, err := New("http://" + testServer)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	client.SetBasicAuth("foo", "bar")
+
+	if client.Header.Get("Authorization") != "Basic Zm9vOmJhcg==" {
+		t.Fatalf("Failed to encode foo:bar.")
+	}
+
+	res = basicAuth_t{}
+	if err = client.Get(&buf, "/auth", nil); err != nil {
+		t.Fatal(err)
+	}
+
+	json.Unmarshal(buf, &res)
+
+	if res.Header.Authorization[0] != "Basic Zm9vOmJhcg==" {
+		t.Fatalf("Failed to send foo:bar.")
+	}
+
+	res = basicAuth_t{}
+	if err = client.Get(&res, "/auth", nil); err != nil {
+		t.Fatal(err)
+	}
 }
