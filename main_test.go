@@ -1,31 +1,29 @@
-/*
-  Copyright (c) 2013 José Carlos Nieto, https://menteslibres.net/xiam
-
-  Permission is hereby granted, free of charge, to any person obtaining
-  a copy of this software and associated documentation files (the
-  "Software"), to deal in the Software without restriction, including
-  without limitation the rights to use, copy, modify, merge, publish,
-  distribute, sublicense, and/or sell copies of the Software, and to
-  permit persons to whom the Software is furnished to do so, subject to
-  the following conditions:
-
-  The above copyright notice and this permission notice shall be
-  included in all copies or substantial portions of the Software.
-
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
+// Copyright (c) 2013-2014 José Carlos Nieto, https://menteslibres.net/xiam
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to
+// permit persons to whom the Software is furnished to do so, subject to
+// the following conditions:
+//
+// The above copyright notice and this permission notice shall be
+// included in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package rest
 
 import (
 	"encoding/json"
-	"fmt"
+	//"fmt"
 	"io/ioutil"
 	"menteslibres.net/gosexy/dig"
 	"net/http"
@@ -79,10 +77,6 @@ func init() {
 	time.Sleep(time.Second * 1)
 }
 
-func TestEnableDebug(t *testing.T) {
-	debug = true
-}
-
 func TestInit(t *testing.T) {
 	var err error
 	client, err = New("http://" + testServer)
@@ -134,7 +128,7 @@ func TestPost(t *testing.T) {
 		t.Fatalf("Failed test: %s\n", err.Error())
 	}
 
-	fmt.Printf("%v\n", buf)
+	//fmt.Printf("%v\n", buf)
 
 	if buf["method"].(string) != "POST" {
 		t.Fatalf("Test failed.")
@@ -173,7 +167,7 @@ func TestPut(t *testing.T) {
 		t.Fatalf("Failed test: %s\n", err.Error())
 	}
 
-	fmt.Printf("%v\n", buf)
+	//fmt.Printf("%v\n", buf)
 
 	if buf["method"].(string) != "PUT" {
 		t.Fatalf("Test failed.")
@@ -212,7 +206,7 @@ func TestDelete(t *testing.T) {
 		t.Fatalf("Failed test: %s\n", err.Error())
 	}
 
-	fmt.Printf("%v\n", buf)
+	//fmt.Printf("%v\n", buf)
 
 	if buf["method"].(string) != "DELETE" {
 		t.Fatalf("Test failed.")
@@ -411,4 +405,42 @@ func TestDefaultClient(t *testing.T) {
 	if len(buf) == 0 {
 		t.Fatalf("Expecting something in buf.")
 	}
+}
+
+func TestGetJSONMap(t *testing.T) {
+	var err error
+
+	var res map[string]interface{}
+	err = Get(&res, "http://ip.jsontest.com", nil)
+
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	if _, ok := res["ip"]; ok == false {
+		t.Fatalf(`Expecting key "ip".`)
+	}
+
+	t.Logf("Your IP address is: %s", res["ip"])
+}
+
+func TestGetStruct(t *testing.T) {
+	var err error
+
+	type ip_t struct {
+		IP string `json:"ip"`
+	}
+
+	var res ip_t
+	err = Get(&res, "http://ip.jsontest.com", nil)
+
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	if res.IP == "" {
+		t.Fatalf("Expecting IP value.")
+	}
+
+	t.Logf("Your IP address is: %s", res.IP)
 }
