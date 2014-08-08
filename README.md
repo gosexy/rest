@@ -34,6 +34,22 @@ rest.Get(&buf, "http://ip.jsontest.com", nil)
 fmt.Printf("Got IP: %s", buf["ip"].(string))
 ```
 
+And also structs:
+
+```go
+type ip_t struct {
+  IP string `json:"ip"`
+}
+
+var buf ip_t
+
+// This service returns a JSON string containing your IP, like:
+// {"ip": "173.194.64.141"}
+rest.Get(&buf, "http://ip.jsontest.com", nil)
+
+fmt.Printf("Got IP: %s", buf.IP)
+```
+
 And if you need the whole document with complete headers and response code, a
 `rest.Response` type is also provided:
 
