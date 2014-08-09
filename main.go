@@ -1,25 +1,23 @@
-/*
-  Copyright (c) 2013 José Carlos Nieto, https://menteslibres.net/xiam
-
-  Permission is hereby granted, free of charge, to any person obtaining
-  a copy of this software and associated documentation files (the
-  "Software"), to deal in the Software without restriction, including
-  without limitation the rights to use, copy, modify, merge, publish,
-  distribute, sublicense, and/or sell copies of the Software, and to
-  permit persons to whom the Software is furnished to do so, subject to
-  the following conditions:
-
-  The above copyright notice and this permission notice shall be
-  included in all copies or substantial portions of the Software.
-
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
+// Copyright (c) 2013-2014 José Carlos Nieto, https://menteslibres.net/xiam
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to
+// permit persons to whom the Software is furnished to do so, subject to
+// the following conditions:
+//
+// The above copyright notice and this permission notice shall be
+// included in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 // Utility package for Go that makes working with web services even easier.
 
@@ -29,7 +27,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -44,25 +41,16 @@ import (
 	"strings"
 )
 
-const Version = "0.3"
-
-var debug = false
+var enableDebug = false
 
 var (
-	ioReadCloserType reflect.Type = reflect.TypeOf((*io.ReadCloser)(nil)).Elem()
-	bytesBufferType  reflect.Type = reflect.TypeOf((**bytes.Buffer)(nil)).Elem()
-	restResponseType reflect.Type = reflect.TypeOf((*Response)(nil)).Elem()
+	ioReadCloserType = reflect.TypeOf((*io.ReadCloser)(nil)).Elem()
+	bytesBufferType  = reflect.TypeOf((**bytes.Buffer)(nil)).Elem()
+	restResponseType = reflect.TypeOf((*Response)(nil)).Elem()
 )
 
-var (
-	ErrInvalidPrefix           = errors.New(`URL prefix is invalid: %s`)
-	ErrCouldNotCreateMultipart = errors.New(`Couldn't create a multipart request without a body.`)
-	ErrCouldNotConvert         = errors.New(`Could not convert response %s to %s.`)
-	ErrDestinationNotAPointer  = errors.New(`Destination is not a pointer.`)
-)
-
-// Can be used as a response value, useful when you need to work with headers,
-// status codes and such.
+// Response can be used as a response value, useful when you need to work with
+// headers, status codes and such.
 type Response struct {
 	Status        string
 	StatusCode    int
@@ -74,21 +62,21 @@ type Response struct {
 	Body []byte
 }
 
-// This type can be used to represent a file that you'll later upload within
-// a multipart request.
+// File can be used to represent a file that you'll later upload within a
+// multipart request.
 type File struct {
 	Name string
 	io.Reader
 }
 
-// Multipart body for multipart requests, you can't generate a MultipartBody
-// directly, use rest.NewMultipartBody() instead.
+// MultipartBody struct for multipart requests, you can't generate a
+// MultipartBody directly, use rest.NewMultipartBody() instead.
 type MultipartBody struct {
 	contentType string
 	buf         io.Reader
 }
 
-// A client, useful in case you need to communicate with an API and you'd like
+// Client is useful in case you need to communicate with an API and you'd like
 // to use the same prefix for all of your requests or in scenarios where it
 // would be handy to keep a session cookie.
 type Client struct {
@@ -97,34 +85,39 @@ type Client struct {
 	CookieJar *cookiejar.Jar
 }
 
-// Default client
-var DefaultClient = &Client{}
+// DefaulClient is the default client used on top level functions like
+// rest.Get(), rest.Post(), rest.Delete() and rest.Put().
+var DefaultClient = new(Client)
 
 func init() {
+	// If the enviroment variable REST_DEBUG is present, we enable verbose
+	// logging.
 	if os.Getenv("REST_DEBUG") != "" {
-		debug = true
+		enableDebug = true
 	}
 }
 
-// Creates a new client, relative URLs will be prefixed with the given prefix
-// value
+// New creates a new client, in all following GET, POST, PUT and DELETE
+// requests given paths will be prefixed with the given client's prefix value.
 func New(prefix string) (*Client, error) {
 	var err error
-	_, err = url.Parse(prefix)
-	if err != nil {
+
+	if _, err = url.Parse(prefix); err != nil {
 		return nil, fmt.Errorf(ErrInvalidPrefix.Error(), err.Error())
 	}
-	self := &Client{}
+
+	self := new(Client)
 	self.Prefix = strings.TrimRight(prefix, "/") + "/"
 	self.Header = http.Header{}
-	self.CookieJar, err = cookiejar.New(nil)
-	if err != nil {
+
+	if self.CookieJar, err = cookiejar.New(nil); err != nil {
 		return nil, err
 	}
+
 	return self, nil
 }
 
-func (self *Client) newMultipartRequest(buf interface{}, method string, addr *url.URL, body *MultipartBody) error {
+func (self *Client) newMultipartRequest(dst interface{}, method string, addr *url.URL, body *MultipartBody) error {
 	var res *http.Response
 	var req *http.Request
 
@@ -132,53 +125,39 @@ func (self *Client) newMultipartRequest(buf interface{}, method string, addr *ur
 
 	if body == nil {
 		return ErrCouldNotCreateMultipart
-	} else {
-		req, err = http.NewRequest(
-			method,
-			addr.String(),
-			body.buf,
-		)
 	}
 
-	if err != nil {
+	if req, err = http.NewRequest(method, addr.String(), body.buf); err != nil {
 		return err
 	}
 
 	req.Header.Set("Content-Type", body.contentType)
 
-	res, err = self.do(req)
-
-	if err != nil {
+	if res, err = self.do(req); err != nil {
 		return err
 	}
 
-	err = self.handleResponse(buf, res)
-
-	if err != nil {
+	if err = self.handleResponse(dst, res); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (self *Client) newRequest(buf interface{}, method string, addr *url.URL, body *strings.Reader) error {
+func (self *Client) newRequest(dst interface{}, method string, addr *url.URL, body *strings.Reader) error {
 	var res *http.Response
 	var req *http.Request
 
 	var err error
 
 	if body == nil {
-		req, err = http.NewRequest(
-			method,
-			addr.String(),
-			nil,
-		)
+		if req, err = http.NewRequest(method, addr.String(), nil); err != nil {
+			return err
+		}
 	} else {
-		req, err = http.NewRequest(
-			method,
-			addr.String(),
-			body,
-		)
+		if req, err = http.NewRequest(method, addr.String(), body); err != nil {
+			return err
+		}
 	}
 
 	switch method {
@@ -188,32 +167,26 @@ func (self *Client) newRequest(buf interface{}, method string, addr *url.URL, bo
 		}
 	}
 
-	if err != nil {
+	if res, err = self.do(req); err != nil {
 		return err
 	}
 
-	res, err = self.do(req)
-
-	if err != nil {
-		return err
-	}
-
-	err = self.handleResponse(buf, res)
-
-	if err != nil {
+	if err = self.handleResponse(dst, res); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// Performs a HTTP PUT request, stores response into the buf pointer.
-func (self *Client) Put(buf interface{}, path string, data url.Values) error {
-	var body *strings.Reader = nil
+// Put performs a HTTP PUT request and, when complete, attempts to convert the
+// response body into the datatype given by dst (a pointer to a struct, map or
+// []byte array).
+func (self *Client) Put(dst interface{}, path string, data url.Values) error {
+	var addr *url.URL
+	var err error
+	var body *strings.Reader
 
-	addr, err := url.Parse(self.Prefix + strings.TrimLeft(path, "/"))
-
-	if err != nil {
+	if addr, err = url.Parse(self.Prefix + strings.TrimLeft(path, "/")); err != nil {
 		return err
 	}
 
@@ -221,16 +194,18 @@ func (self *Client) Put(buf interface{}, path string, data url.Values) error {
 		body = strings.NewReader(data.Encode())
 	}
 
-	return self.newRequest(buf, "PUT", addr, body)
+	return self.newRequest(dst, "PUT", addr, body)
 }
 
-// Performs a HTTP DELETE request, stores response into the buf pointer.
-func (self *Client) Delete(buf interface{}, path string, data url.Values) error {
-	var body *strings.Reader = nil
+// Delete performs a HTTP DELETE request and, when complete, attempts to
+// convert the response body into the datatype given by dst (a pointer to a
+// struct, map or []byte array).
+func (self *Client) Delete(dst interface{}, path string, data url.Values) error {
+	var addr *url.URL
+	var err error
+	var body *strings.Reader
 
-	addr, err := url.Parse(self.Prefix + strings.TrimLeft(path, "/"))
-
-	if err != nil {
+	if addr, err = url.Parse(self.Prefix + strings.TrimLeft(path, "/")); err != nil {
 		return err
 	}
 
@@ -238,55 +213,65 @@ func (self *Client) Delete(buf interface{}, path string, data url.Values) error 
 		body = strings.NewReader(data.Encode())
 	}
 
-	return self.newRequest(buf, "DELETE", addr, body)
+	return self.newRequest(dst, "DELETE", addr, body)
 }
 
-// Performs a multipart HTTP PUT request, stores response into the buf pointer.
-func (self *Client) PutMultipart(buf interface{}, uri string, data *MultipartBody) error {
-	addr, err := url.Parse(self.Prefix + strings.TrimLeft(uri, "/"))
+// PutMultipart performs a HTTP PUT multipart request and, when complete,
+// attempts to convert the response body into the datatype given by dst (a
+// pointer to a struct, map or []byte array).
+func (self *Client) PutMultipart(dst interface{}, uri string, data *MultipartBody) error {
+	var addr *url.URL
+	var err error
 
-	if err != nil {
+	if addr, err = url.Parse(self.Prefix + strings.TrimLeft(uri, "/")); err != nil {
 		return err
 	}
 
-	return self.newMultipartRequest(buf, "PUT", addr, data)
+	return self.newMultipartRequest(dst, "PUT", addr, data)
 }
 
-// Performs a multipart HTTP POST request, stores response into the buf pointer.
-func (self *Client) PostMultipart(buf interface{}, uri string, data *MultipartBody) error {
-	addr, err := url.Parse(self.Prefix + strings.TrimLeft(uri, "/"))
+// PostMultipart performs a HTTP POST multipart request and, when complete,
+// attempts to convert the response body into the datatype given by dst (a
+// pointer to a struct, map or []byte array).
+func (self *Client) PostMultipart(dst interface{}, uri string, data *MultipartBody) error {
+	var addr *url.URL
+	var err error
 
-	if err != nil {
+	if addr, err = url.Parse(self.Prefix + strings.TrimLeft(uri, "/")); err != nil {
 		return err
 	}
 
-	return self.newMultipartRequest(buf, "POST", addr, data)
+	return self.newMultipartRequest(dst, "POST", addr, data)
 }
 
-// Performs a HTTP POST request, stores response into the buf pointer.
-func (self *Client) PostRaw(buf interface{}, path string, data []byte) error {
-	var body *strings.Reader = nil
+// PostRaw performs a HTTP POST request with a custom body and, when complete,
+// attempts to convert the response body into the datatype given by dst (a
+// pointer to a struct, map or []byte array).
+func (self *Client) PostRaw(dst interface{}, path string, body []byte) error {
+	var addr *url.URL
+	var err error
+	var bodyReader *strings.Reader
 
-	addr, err := url.Parse(self.Prefix + strings.TrimLeft(path, "/"))
-
-	if err != nil {
+	if addr, err = url.Parse(self.Prefix + strings.TrimLeft(path, "/")); err != nil {
 		return err
 	}
 
-	if data != nil {
-		body = strings.NewReader(string(data))
+	if body != nil {
+		bodyReader = strings.NewReader(string(body))
 	}
 
-	return self.newRequest(buf, "POST", addr, body)
+	return self.newRequest(dst, "POST", addr, bodyReader)
 }
 
-// Performs a HTTP POST request, stores response into the buf pointer.
-func (self *Client) Post(buf interface{}, path string, data url.Values) error {
-	var body *strings.Reader = nil
+// Post performs a HTTP POST request and, when complete, attempts to convert
+// the response body into the datatype given by dst (a pointer to a struct, map
+// or []byte array).
+func (self *Client) Post(dst interface{}, path string, data url.Values) error {
+	var addr *url.URL
+	var err error
+	var body *strings.Reader
 
-	addr, err := url.Parse(self.Prefix + strings.TrimLeft(path, "/"))
-
-	if err != nil {
+	if addr, err = url.Parse(self.Prefix + strings.TrimLeft(path, "/")); err != nil {
 		return err
 	}
 
@@ -294,14 +279,17 @@ func (self *Client) Post(buf interface{}, path string, data url.Values) error {
 		body = strings.NewReader(data.Encode())
 	}
 
-	return self.newRequest(buf, "POST", addr, body)
+	return self.newRequest(dst, "POST", addr, body)
 }
 
-// Performs a HTTP GET request, stores response into the buf pointer.
-func (self *Client) Get(buf interface{}, path string, data url.Values) error {
-	addr, err := url.Parse(self.Prefix + strings.TrimLeft(path, "/"))
+// Get performs a HTTP GET request and, when complete, attempts to convert the
+// response body into the datatype given by dst (a pointer to a struct, map or
+// []byte array).
+func (self *Client) Get(dst interface{}, path string, data url.Values) error {
+	var addr *url.URL
+	var err error
 
-	if err != nil {
+	if addr, err = url.Parse(self.Prefix + strings.TrimLeft(path, "/")); err != nil {
 		return err
 	}
 
@@ -313,15 +301,16 @@ func (self *Client) Get(buf interface{}, path string, data url.Values) error {
 		}
 	}
 
-	return self.newRequest(buf, "GET", addr, nil)
+	return self.newRequest(dst, "GET", addr, nil)
 }
 
-// Creates a *MultipartBody based on the given params and map of files.
+// NewMultipartBody creates a *MultipartBody based on the given parameters.
+// This is useful for PostMultipart() and PutMultipart().
 func NewMultipartBody(params url.Values, filemap map[string][]File) (*MultipartBody, error) {
 
-	buf := bytes.NewBuffer(nil)
+	dst := bytes.NewBuffer(nil)
 
-	body := multipart.NewWriter(buf)
+	body := multipart.NewWriter(dst)
 
 	if filemap != nil {
 		for key, files := range filemap {
@@ -334,9 +323,7 @@ func NewMultipartBody(params url.Values, filemap map[string][]File) (*MultipartB
 					return nil, err
 				}
 
-				_, err = io.Copy(writer, file.Reader)
-
-				if err != nil {
+				if _, err = io.Copy(writer, file.Reader); err != nil {
 					return nil, err
 				}
 			}
@@ -344,7 +331,7 @@ func NewMultipartBody(params url.Values, filemap map[string][]File) (*MultipartB
 	}
 
 	if params != nil {
-		for key, _ := range params {
+		for key := range params {
 			for _, value := range params[key] {
 				body.WriteField(key, value)
 			}
@@ -353,7 +340,7 @@ func NewMultipartBody(params url.Values, filemap map[string][]File) (*MultipartB
 
 	body.Close()
 
-	return &MultipartBody{body.FormDataContentType(), buf}, nil
+	return &MultipartBody{body.FormDataContentType(), dst}, nil
 }
 
 // Returns the body of the request as a io.ReadCloser
@@ -362,8 +349,7 @@ func (self *Client) body(res *http.Response) (io.ReadCloser, error) {
 	var err error
 
 	if res.Header.Get("Content-Encoding") == "gzip" {
-		body, err = gzip.NewReader(res.Body)
-		if err != nil {
+		if body, err = gzip.NewReader(res.Body); err != nil {
 			return nil, err
 		}
 	} else {
@@ -446,7 +432,7 @@ func (self *Client) handleResponse(dst interface{}, res *http.Response) error {
 
 		r.Body, err = ioutil.ReadAll(body)
 
-		if debug == true {
+		if enableDebug == true {
 			log.Printf("Body:\n%s\n", string(r.Body))
 		}
 
@@ -468,7 +454,7 @@ func (self *Client) handleResponse(dst interface{}, res *http.Response) error {
 	case bytesBufferType:
 		buf, err := ioutil.ReadAll(body)
 
-		if debug == true {
+		if enableDebug == true {
 			log.Printf("Body:\n%s\n", string(buf))
 		}
 
@@ -482,7 +468,7 @@ func (self *Client) handleResponse(dst interface{}, res *http.Response) error {
 	default:
 		buf, err := ioutil.ReadAll(body)
 
-		if debug == true {
+		if enableDebug == true {
 			log.Printf("Body:\n%s\n", string(buf))
 		}
 
@@ -508,7 +494,7 @@ func (self *Client) handleResponse(dst interface{}, res *http.Response) error {
 }
 
 func (self *Client) do(req *http.Request) (*http.Response, error) {
-	client := &http.Client{}
+	client := new(http.Client)
 
 	// Adding cookie jar
 	if self.CookieJar != nil {
@@ -516,7 +502,7 @@ func (self *Client) do(req *http.Request) (*http.Response, error) {
 	}
 
 	// Copying headers
-	for k, _ := range self.Header {
+	for k := range self.Header {
 		req.Header.Set(k, self.Header.Get(k))
 	}
 
@@ -527,20 +513,20 @@ func (self *Client) do(req *http.Request) (*http.Response, error) {
 
 	res, err := client.Do(req)
 
-	if debug == true {
+	if enableDebug == true {
 
 		log.Printf("Fetching %v\n", req.URL.String())
 
 		log.Printf("> %s %s", req.Method, req.Proto)
-		for k, _ := range req.Header {
-			for kk, _ := range req.Header[k] {
+		for k := range req.Header {
+			for kk := range req.Header[k] {
 				log.Printf("> %s: %s", k, req.Header[k][kk])
 			}
 		}
 
 		log.Printf("< %s %s", res.Proto, res.Status)
-		for k, _ := range res.Header {
-			for kk, _ := range res.Header[k] {
+		for k := range res.Header {
+			for kk := range res.Header[k] {
 				log.Printf("< %s: %s", k, res.Header[k][kk])
 			}
 		}
@@ -551,38 +537,44 @@ func (self *Client) do(req *http.Request) (*http.Response, error) {
 	return res, err
 }
 
-// Performs a HTTP GET request using the default client. Stores response
-// in dest pointer.
+// Get performs a HTTP GET request using the default client and, when complete,
+// attempts to convert the response body into the datatype given by dst (a
+// pointer to a struct, map or []byte array).
 func Get(dest interface{}, uri string, data url.Values) error {
 	return DefaultClient.Get(dest, uri, data)
 }
 
-// Performs a HTTP POST request using the default client. Stores response
-// in dest pointer.
+// Post performs a HTTP POST request using the default client and, when
+// complete, attempts to convert the response body into the datatype given by
+// dst (a pointer to a struct, map or []byte array).
 func Post(dest interface{}, uri string, data url.Values) error {
 	return DefaultClient.Post(dest, uri, data)
 }
 
-// Performs a HTTP PUT request using the default client. Stores response
-// in dest pointer.
+// Put performs a HTTP PUT request using the default client and, when complete,
+// attempts to convert the response body into the datatype given by dst (a
+// pointer to a struct, map or []byte array).
 func Put(dest interface{}, uri string, data url.Values) error {
 	return DefaultClient.Put(dest, uri, data)
 }
 
-// Performs a HTTP DELETE request using the default client. Stores response
-// in dest pointer.
+// Delete performs a HTTP DELETE request using the default client and, when
+// complete, attempts to convert the response body into the datatype given by
+// dst (a pointer to a struct, map or []byte array).
 func Delete(dest interface{}, uri string, data url.Values) error {
 	return DefaultClient.Delete(dest, uri, data)
 }
 
-// Performs a multipart HTTP POST request using the default client. Stores
-// response in dest pointer.
+// PostMultipart performs a HTTP POST multipart request using the default
+// client and, when complete, attempts to convert the response body into the
+// datatype given by dst (a pointer to a struct, map or []byte array).
 func PostMultipart(dest interface{}, uri string, data *MultipartBody) error {
 	return DefaultClient.PostMultipart(dest, uri, data)
 }
 
-// Performs a multipart HTTP PUT request using the default client. Stores
-// response in dest pointer.
+// PutMultipart performs a HTTP PUT multipart request using the default client
+// and, when complete, attempts to convert the response body into the datatype
+// given by dst (a pointer to a struct, map or []byte array).
 func PutMultipart(dest interface{}, uri string, data *MultipartBody) error {
 	return DefaultClient.PutMultipart(dest, uri, data)
 }
