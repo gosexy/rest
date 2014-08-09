@@ -26,6 +26,7 @@ package rest
 import (
 	"bytes"
 	"compress/gzip"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -115,6 +116,17 @@ func New(prefix string) (*Client, error) {
 	}
 
 	return self, nil
+}
+
+// Taken from net/http
+func basicAuth(username, password string) string {
+	auth := username + ":" + password
+	return base64.StdEncoding.EncodeToString([]byte(auth))
+}
+
+// Sets the request's basic authorization header to be used in all requests.
+func (self *Client) SetBasicAuth(username string, password string) {
+	self.Header.Set("Authorization", "Basic "+basicAuth(username, password))
 }
 
 func (self *Client) newMultipartRequest(dst interface{}, method string, addr *url.URL, body *MultipartBody) error {
