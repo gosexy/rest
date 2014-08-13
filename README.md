@@ -1,6 +1,6 @@
 # menteslibres.net/gosexy/rest
 
-The `rest` package helps you creating HTTP clients for APIs with Go.
+The `rest` package helps you creating clients for HTTP APIs with Go.
 
 ## Getting the package
 

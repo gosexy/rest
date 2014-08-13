@@ -19,8 +19,7 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-// The `menteslibres.net/gosexy/rest` is an utility package for HTTP-API
-// clients.
+// The rest package helps you creating HTTP clients for APIs with Go.
 
 package rest
 
