@@ -71,9 +71,11 @@ type File struct {
 	io.Reader
 }
 
-// MultipartBody struct for multipart requests, you can't generate a
-// MultipartBody directly, use rest.NewMultipartBody() instead.
-type MultipartBody struct {
+type FileMap map[string][]File
+
+// MultipartMessage struct for multipart requests, you can't generate a
+// MultipartMessage directly, use rest.NewMultipartMessage() instead.
+type MultipartMessage struct {
 	contentType string
 	buf         io.Reader
 }
@@ -82,8 +84,12 @@ type MultipartBody struct {
 // to use the same prefix for all of your requests or in scenarios where it
 // would be handy to keep a session cookie.
 type Client struct {
-	Header    http.Header
-	Prefix    string
+	// These headers will be added in every request.
+	Header http.Header
+	// String to be added at the begining of every URL in Get(), Post(), Put()
+	// and Delete() methods.
+	Prefix string
+	// Jar to store cookies.
 	CookieJar *cookiejar.Jar
 }
 
@@ -130,7 +136,7 @@ func (self *Client) SetBasicAuth(username string, password string) {
 	self.Header.Set("Authorization", "Basic "+basicAuth(username, password))
 }
 
-func (self *Client) newMultipartRequest(dst interface{}, method string, addr *url.URL, body *MultipartBody) error {
+func (self *Client) newMultipartRequest(dst interface{}, method string, addr *url.URL, body *MultipartMessage) error {
 	var res *http.Response
 	var req *http.Request
 
@@ -232,7 +238,7 @@ func (self *Client) Delete(dst interface{}, path string, data url.Values) error 
 // PutMultipart performs a HTTP PUT multipart request and, when complete,
 // attempts to convert the response body into the datatype given by dst (a
 // pointer to a struct, map or []byte array).
-func (self *Client) PutMultipart(dst interface{}, uri string, data *MultipartBody) error {
+func (self *Client) PutMultipart(dst interface{}, uri string, data *MultipartMessage) error {
 	var addr *url.URL
 	var err error
 
@@ -246,7 +252,7 @@ func (self *Client) PutMultipart(dst interface{}, uri string, data *MultipartBod
 // PostMultipart performs a HTTP POST multipart request and, when complete,
 // attempts to convert the response body into the datatype given by dst (a
 // pointer to a struct, map or []byte array).
-func (self *Client) PostMultipart(dst interface{}, uri string, data *MultipartBody) error {
+func (self *Client) PostMultipart(dst interface{}, uri string, data *MultipartMessage) error {
 	var addr *url.URL
 	var err error
 
@@ -317,9 +323,9 @@ func (self *Client) Get(dst interface{}, path string, data url.Values) error {
 	return self.newRequest(dst, "GET", addr, nil)
 }
 
-// NewMultipartBody creates a *MultipartBody based on the given parameters.
+// NewMultipartMessage creates a *MultipartMessage based on the given parameters.
 // This is useful for PostMultipart() and PutMultipart().
-func NewMultipartBody(params url.Values, filemap map[string][]File) (*MultipartBody, error) {
+func NewMultipartMessage(params url.Values, filemap FileMap) (*MultipartMessage, error) {
 
 	dst := bytes.NewBuffer(nil)
 
@@ -353,7 +359,7 @@ func NewMultipartBody(params url.Values, filemap map[string][]File) (*MultipartB
 
 	body.Close()
 
-	return &MultipartBody{body.FormDataContentType(), dst}, nil
+	return &MultipartMessage{body.FormDataContentType(), dst}, nil
 }
 
 // Returns the body of the request as a io.ReadCloser
@@ -581,13 +587,13 @@ func Delete(dest interface{}, uri string, data url.Values) error {
 // PostMultipart performs a HTTP POST multipart request using the default
 // client and, when complete, attempts to convert the response body into the
 // datatype given by dst (a pointer to a struct, map or []byte array).
-func PostMultipart(dest interface{}, uri string, data *MultipartBody) error {
+func PostMultipart(dest interface{}, uri string, data *MultipartMessage) error {
 	return DefaultClient.PostMultipart(dest, uri, data)
 }
 
 // PutMultipart performs a HTTP PUT multipart request using the default client
 // and, when complete, attempts to convert the response body into the datatype
 // given by dst (a pointer to a struct, map or []byte array).
-func PutMultipart(dest interface{}, uri string, data *MultipartBody) error {
+func PutMultipart(dest interface{}, uri string, data *MultipartMessage) error {
 	return DefaultClient.PutMultipart(dest, uri, data)
 }

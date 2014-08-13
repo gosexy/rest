@@ -244,14 +244,14 @@ func TestPostMultipart(t *testing.T) {
 
 	files := map[string][]File{
 		"file": []File{
-			File{
-				path.Base(fileMain.Name()),
-				fileMain,
+			{
+				Name:   path.Base(fileMain.Name()),
+				Reader: fileMain,
 			},
 		},
 	}
 
-	body, err := NewMultipartBody(url.Values{"foo": {"bar"}}, files)
+	body, err := NewMultipartMessage(url.Values{"foo": {"bar"}}, files)
 
 	var buf map[string]interface{}
 
@@ -265,7 +265,7 @@ func TestPostMultipart(t *testing.T) {
 		t.Fatalf("Test failed.")
 	}
 
-	body, err = NewMultipartBody(nil, files)
+	body, err = NewMultipartMessage(nil, files)
 
 	err = client.PostMultipart(&buf, "/post", body)
 
@@ -277,7 +277,7 @@ func TestPostMultipart(t *testing.T) {
 		t.Fatalf("Test failed.")
 	}
 
-	body, err = NewMultipartBody(url.Values{"foo": {"bar"}}, nil)
+	body, err = NewMultipartMessage(url.Values{"foo": {"bar"}}, nil)
 
 	err = client.PostMultipart(&buf, "/post", body)
 
@@ -308,7 +308,7 @@ func TestPutMultipart(t *testing.T) {
 		},
 	}
 
-	body, err := NewMultipartBody(url.Values{"foo": {"bar"}}, files)
+	body, err := NewMultipartMessage(url.Values{"foo": {"bar"}}, files)
 
 	var buf map[string]interface{}
 
@@ -322,7 +322,7 @@ func TestPutMultipart(t *testing.T) {
 		t.Fatalf("Test failed.")
 	}
 
-	body, err = NewMultipartBody(nil, files)
+	body, err = NewMultipartMessage(nil, files)
 
 	err = client.PutMultipart(&buf, "/put", body)
 
@@ -334,7 +334,7 @@ func TestPutMultipart(t *testing.T) {
 		t.Fatalf("Test failed.")
 	}
 
-	body, err = NewMultipartBody(url.Values{"foo": {"bar"}}, nil)
+	body, err = NewMultipartMessage(url.Values{"foo": {"bar"}}, nil)
 
 	err = client.PutMultipart(&buf, "/put", body)
 
@@ -356,16 +356,16 @@ func TestSugar(t *testing.T) {
 
 	defer fileMain.Close()
 
-	files := map[string][]File{
+	files := FileMap{
 		"file": []File{
-			File{
+			{
 				path.Base(fileMain.Name()),
 				fileMain,
 			},
 		},
 	}
 
-	body, err := NewMultipartBody(url.Values{"foo": {"bar"}}, files)
+	body, err := NewMultipartMessage(url.Values{"foo": {"bar"}}, files)
 
 	var buf map[string]interface{}
 
