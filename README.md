@@ -1,6 +1,6 @@
 # menteslibres.net/gosexy/rest
 
-The `rest` package helps you creating HTTP clients with Go.
+The `rest` package helps you creating HTTP clients for APIs with Go.
 
 ## Getting the package
 
@@ -18,7 +18,7 @@ The `rest` package comes with handy functions that are equivalent to HTTP
 methods or *verbs*: `rest.Get()`, `rest.Post()`, `rest.Put()` and
 `rest.Delete()`.
 
-This is the declaration of the `rest.Get()` function:
+Let's take a look at the declaration of the `rest.Get()` function:
 
 ```go
 func Get(dest interface{}, uri string, data url.Values) error {
@@ -26,20 +26,20 @@ func Get(dest interface{}, uri string, data url.Values) error {
 }
 ```
 
-all other *verb* functions expect the same three parameters: destination, url
-address and parameters.
+as you can see `Get()` expects three variables: destination, url address and
+parameters. The other *verb* functions expect the same variables.
 
 The destination parameter must be either nil or a pointer to a variable. If you
 provide a pointer, `rest` will try to do its best to convert the HTTP request's
 body into the given type.
 
 The second argument must be a fully qualified URL
-(http://www.example.com/foo/.../bar) and the third argument must be either an
+(`http://www.example.com/foo/.../bar`) and the third argument must be either an
 `url.Values{}` variable or nil if you don't need any parameter to be passed to
 the URL.
 
 In the following code example, the same request gets converted into different
-kinds of destinations:
+types of destination variables:
 
 ```go
 // Dumping request response as a byte array.
