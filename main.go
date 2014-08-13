@@ -40,10 +40,18 @@ import (
 	"os"
 	"path"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
-var enableDebug = false
+const debugEnv = `REST_DEBUG`
+
+const (
+	debugLevelSilence = 0
+	debugLevelVerbose = 1
+)
+
+var debugLevel = 0
 
 var (
 	ioReadCloserType = reflect.TypeOf((*io.ReadCloser)(nil)).Elem()
@@ -97,12 +105,18 @@ type Client struct {
 // rest.Get(), rest.Post(), rest.Delete() and rest.Put().
 var DefaultClient = new(Client)
 
+func debugLevelEnabled(level int) bool {
+	if level <= debugLevel {
+		return true
+	}
+	return false
+}
+
 func init() {
 	// If the enviroment variable REST_DEBUG is present, we enable verbose
 	// logging.
-	if os.Getenv("REST_DEBUG") != "" {
-		enableDebug = true
-	}
+	debugSetting := os.Getenv(debugEnv)
+	debugLevel, _ = strconv.Atoi(debugSetting)
 }
 
 // New creates a new client, in all following GET, POST, PUT and DELETE
@@ -451,7 +465,7 @@ func (self *Client) handleResponse(dst interface{}, res *http.Response) error {
 
 		r.Body, err = ioutil.ReadAll(body)
 
-		if enableDebug == true {
+		if debugLevelEnabled(debugLevelVerbose) {
 			log.Printf("Body:\n%s\n", string(r.Body))
 		}
 
@@ -473,7 +487,7 @@ func (self *Client) handleResponse(dst interface{}, res *http.Response) error {
 	case bytesBufferType:
 		buf, err := ioutil.ReadAll(body)
 
-		if enableDebug == true {
+		if debugLevelEnabled(debugLevelVerbose) {
 			log.Printf("Body:\n%s\n", string(buf))
 		}
 
@@ -487,7 +501,7 @@ func (self *Client) handleResponse(dst interface{}, res *http.Response) error {
 	default:
 		buf, err := ioutil.ReadAll(body)
 
-		if enableDebug == true {
+		if debugLevelEnabled(debugLevelVerbose) {
 			log.Printf("Body:\n%s\n", string(buf))
 		}
 
@@ -532,7 +546,7 @@ func (self *Client) do(req *http.Request) (*http.Response, error) {
 
 	res, err := client.Do(req)
 
-	if enableDebug == true {
+	if debugLevelEnabled(debugLevelVerbose) {
 
 		log.Printf("Fetching %v\n", req.URL.String())
 
