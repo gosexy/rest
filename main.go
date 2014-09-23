@@ -177,8 +177,15 @@ func (self *Client) newRequest(dst interface{}, method string, addr *url.URL, bo
 		err error
 	)
 
-	if req, err = http.NewRequest(method, addr.String(), body); err != nil {
-		return err
+	if body == nil {
+		// Even if body is nil, passing nil instead of body to http.NewRequest makes a difference
+		if req, err = http.NewRequest(method, addr.String(), nil); err != nil {
+			return err
+		}
+	} else {
+		if req, err = http.NewRequest(method, addr.String(), body); err != nil {
+			return err
+		}
 	}
 
 	switch method {
@@ -318,6 +325,7 @@ func NewMultipartMessage(params url.Values, filemap FileMap) (*MultipartMessage,
 	dst := bytes.NewBuffer(nil)
 
 	body := multipart.NewWriter(dst)
+	defer body.Close()
 
 	if filemap != nil {
 		for key, files := range filemap {
@@ -344,8 +352,6 @@ func NewMultipartMessage(params url.Values, filemap FileMap) (*MultipartMessage,
 			}
 		}
 	}
-
-	body.Close()
 
 	return &MultipartMessage{body.FormDataContentType(), dst}, nil
 }
