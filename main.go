@@ -43,19 +43,23 @@ import (
 	"strings"
 )
 
-const debugEnv = `REST_DEBUG`
+const debugEnv = "REST_DEBUG"
 
 const (
-	debugLevelSilence = 0
-	debugLevelVerbose = 1
+	debugLevelSilence = iota // 0
+	debugLevelVerbose        // 1
 )
 
-var debugLevel = 0
-
 var (
+	debugLevel = 0
+
 	ioReadCloserType = reflect.TypeOf((*io.ReadCloser)(nil)).Elem()
 	bytesBufferType  = reflect.TypeOf((**bytes.Buffer)(nil)).Elem()
 	restResponseType = reflect.TypeOf((*Response)(nil)).Elem()
+
+	// DefaulClient is the default client used on top level functions like
+	// rest.Get(), rest.Post(), rest.Delete() and rest.Put().
+	DefaultClient = new(Client)
 )
 
 // Response can be used as a response value, useful when you need to work with
@@ -100,15 +104,8 @@ type Client struct {
 	CookieJar *cookiejar.Jar
 }
 
-// DefaulClient is the default client used on top level functions like
-// rest.Get(), rest.Post(), rest.Delete() and rest.Put().
-var DefaultClient = new(Client)
-
 func debugLevelEnabled(level int) bool {
-	if level <= debugLevel {
-		return true
-	}
-	return false
+	return level <= debugLevel
 }
 
 func init() {
@@ -150,10 +147,11 @@ func (self *Client) SetBasicAuth(username string, password string) {
 }
 
 func (self *Client) newMultipartRequest(dst interface{}, method string, addr *url.URL, body *MultipartMessage) error {
-	var res *http.Response
-	var req *http.Request
-
-	var err error
+	var (
+		res *http.Response
+		req *http.Request
+		err error
+	)
 
 	if body == nil {
 		return ErrCouldNotCreateMultipart
@@ -169,27 +167,18 @@ func (self *Client) newMultipartRequest(dst interface{}, method string, addr *ur
 		return err
 	}
 
-	if err = self.handleResponse(dst, res); err != nil {
-		return err
-	}
-
-	return nil
+	return self.handleResponse(dst, res)
 }
 
 func (self *Client) newRequest(dst interface{}, method string, addr *url.URL, body *strings.Reader) error {
-	var res *http.Response
-	var req *http.Request
+	var (
+		res *http.Response
+		req *http.Request
+		err error
+	)
 
-	var err error
-
-	if body == nil {
-		if req, err = http.NewRequest(method, addr.String(), nil); err != nil {
-			return err
-		}
-	} else {
-		if req, err = http.NewRequest(method, addr.String(), body); err != nil {
-			return err
-		}
+	if req, err = http.NewRequest(method, addr.String(), body); err != nil {
+		return err
 	}
 
 	switch method {
@@ -203,20 +192,18 @@ func (self *Client) newRequest(dst interface{}, method string, addr *url.URL, bo
 		return err
 	}
 
-	if err = self.handleResponse(dst, res); err != nil {
-		return err
-	}
-
-	return nil
+	return self.handleResponse(dst, res)
 }
 
 // Put performs a HTTP PUT request and, when complete, attempts to convert the
 // response body into the datatype given by dst (a pointer to a struct, map or
 // []byte array).
 func (self *Client) Put(dst interface{}, path string, data url.Values) error {
-	var addr *url.URL
-	var err error
-	var body *strings.Reader
+	var (
+		addr *url.URL
+		err  error
+		body *strings.Reader
+	)
 
 	if addr, err = url.Parse(self.Prefix + strings.TrimLeft(path, "/")); err != nil {
 		return err
@@ -233,14 +220,13 @@ func (self *Client) Put(dst interface{}, path string, data url.Values) error {
 // convert the response body into the datatype given by dst (a pointer to a
 // struct, map or []byte array).
 func (self *Client) Delete(dst interface{}, path string, data url.Values) error {
-	var addr *url.URL
-	var err error
-	var body *strings.Reader
 
-	if addr, err = url.Parse(self.Prefix + strings.TrimLeft(path, "/")); err != nil {
+	addr, err := url.Parse(self.Prefix + strings.TrimLeft(path, "/"))
+	if err != nil {
 		return err
 	}
 
+	var body *strings.Reader
 	if data != nil {
 		body = strings.NewReader(data.Encode())
 	}
@@ -252,13 +238,10 @@ func (self *Client) Delete(dst interface{}, path string, data url.Values) error 
 // attempts to convert the response body into the datatype given by dst (a
 // pointer to a struct, map or []byte array).
 func (self *Client) PutMultipart(dst interface{}, uri string, data *MultipartMessage) error {
-	var addr *url.URL
-	var err error
-
-	if addr, err = url.Parse(self.Prefix + strings.TrimLeft(uri, "/")); err != nil {
+	addr, err := url.Parse(self.Prefix + strings.TrimLeft(uri, "/"))
+	if err != nil {
 		return err
 	}
-
 	return self.newMultipartRequest(dst, "PUT", addr, data)
 }
 
@@ -266,13 +249,10 @@ func (self *Client) PutMultipart(dst interface{}, uri string, data *MultipartMes
 // attempts to convert the response body into the datatype given by dst (a
 // pointer to a struct, map or []byte array).
 func (self *Client) PostMultipart(dst interface{}, uri string, data *MultipartMessage) error {
-	var addr *url.URL
-	var err error
-
-	if addr, err = url.Parse(self.Prefix + strings.TrimLeft(uri, "/")); err != nil {
+	addr, err := url.Parse(self.Prefix + strings.TrimLeft(uri, "/"))
+	if err != nil {
 		return err
 	}
-
 	return self.newMultipartRequest(dst, "POST", addr, data)
 }
 
@@ -280,14 +260,12 @@ func (self *Client) PostMultipart(dst interface{}, uri string, data *MultipartMe
 // attempts to convert the response body into the datatype given by dst (a
 // pointer to a struct, map or []byte array).
 func (self *Client) PostRaw(dst interface{}, path string, body []byte) error {
-	var addr *url.URL
-	var err error
-	var bodyReader *strings.Reader
-
-	if addr, err = url.Parse(self.Prefix + strings.TrimLeft(path, "/")); err != nil {
+	addr, err := url.Parse(self.Prefix + strings.TrimLeft(path, "/"))
+	if err != nil {
 		return err
 	}
 
+	var bodyReader *strings.Reader
 	if body != nil {
 		bodyReader = strings.NewReader(string(body))
 	}
@@ -299,14 +277,12 @@ func (self *Client) PostRaw(dst interface{}, path string, body []byte) error {
 // the response body into the datatype given by dst (a pointer to a struct, map
 // or []byte array).
 func (self *Client) Post(dst interface{}, path string, data url.Values) error {
-	var addr *url.URL
-	var err error
-	var body *strings.Reader
-
-	if addr, err = url.Parse(self.Prefix + strings.TrimLeft(path, "/")); err != nil {
+	addr, err := url.Parse(self.Prefix + strings.TrimLeft(path, "/"))
+	if err != nil {
 		return err
 	}
 
+	var body *strings.Reader
 	if data != nil {
 		body = strings.NewReader(data.Encode())
 	}
@@ -318,10 +294,8 @@ func (self *Client) Post(dst interface{}, path string, data url.Values) error {
 // response body into the datatype given by dst (a pointer to a struct, map or
 // []byte array).
 func (self *Client) Get(dst interface{}, path string, data url.Values) error {
-	var addr *url.URL
-	var err error
-
-	if addr, err = url.Parse(self.Prefix + strings.TrimLeft(path, "/")); err != nil {
+	addr, err := url.Parse(self.Prefix + strings.TrimLeft(path, "/"))
+	if err != nil {
 		return err
 	}
 
@@ -333,7 +307,8 @@ func (self *Client) Get(dst interface{}, path string, data url.Values) error {
 		}
 	}
 
-	return self.newRequest(dst, "GET", addr, nil)
+	var body *strings.Reader
+	return self.newRequest(dst, "GET", addr, body)
 }
 
 // NewMultipartMessage creates a *MultipartMessage based on the given parameters.
@@ -377,18 +352,14 @@ func NewMultipartMessage(params url.Values, filemap FileMap) (*MultipartMessage,
 
 // Returns the body of the request as a io.ReadCloser
 func (self *Client) body(res *http.Response) (io.ReadCloser, error) {
-	var body io.ReadCloser
-	var err error
-
-	if res.Header.Get("Content-Encoding") == "gzip" {
-		if body, err = gzip.NewReader(res.Body); err != nil {
-			return nil, err
-		}
-	} else {
-		body = res.Body
+	if res.Header.Get("Content-Encoding") != "gzip" {
+		return res.Body, nil
 	}
-
-	return body, nil
+	body, err := gzip.NewReader(res.Body)
+	if err != nil {
+		body = nil
+	}
+	return body, err
 }
 
 func fromBytes(dst reflect.Value, buf []byte) error {
@@ -425,7 +396,7 @@ func fromBytes(dst reflect.Value, buf []byte) error {
 
 			if err == nil {
 				dst.Set(reflect.ValueOf(m))
-				return nil
+				return err
 			}
 		}
 	}
@@ -465,7 +436,7 @@ func (self *Client) handleResponse(dst interface{}, res *http.Response) error {
 		r.Body, err = ioutil.ReadAll(body)
 
 		if debugLevelEnabled(debugLevelVerbose) {
-			log.Printf("Body:\n%s\n", string(r.Body))
+			log.Printf("Body:\n%s\n", r.Body)
 		}
 
 		if err != nil {
@@ -487,7 +458,7 @@ func (self *Client) handleResponse(dst interface{}, res *http.Response) error {
 		buf, err := ioutil.ReadAll(body)
 
 		if debugLevelEnabled(debugLevelVerbose) {
-			log.Printf("Body:\n%s\n", string(buf))
+			log.Printf("Body:\n%s\n", buf)
 		}
 
 		if err != nil {
@@ -501,7 +472,7 @@ func (self *Client) handleResponse(dst interface{}, res *http.Response) error {
 		buf, err := ioutil.ReadAll(body)
 
 		if debugLevelEnabled(debugLevelVerbose) {
-			log.Printf("Body:\n%s\n", string(buf))
+			log.Printf("Body:\n%s\n", buf)
 		}
 
 		if err != nil {
@@ -563,7 +534,7 @@ func (self *Client) do(req *http.Request) (*http.Response, error) {
 			}
 		}
 
-		log.Printf("\n")
+		log.Println()
 	}
 
 	return res, err

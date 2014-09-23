@@ -23,8 +23,8 @@ package rest
 
 import (
 	"encoding/json"
+	"github.com/gosexy/dig"
 	"io/ioutil"
-	"menteslibres.net/gosexy/dig"
 	"net/http"
 	"net/url"
 	"os"
