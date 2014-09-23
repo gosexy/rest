@@ -5,8 +5,8 @@
 package main
 
 import (
+	"github.com/gosexy/rest"
 	"log"
-	"menteslibres.net/gosexy/rest"
 	"net/url"
 	"os"
 	"path"
@@ -51,9 +51,9 @@ func main() {
 		},
 	}
 
-	// The rest.NewMultipartBody creates a specially formatted body that mixes
+	// The rest.NewMultipartMessage creates a specially formatted body that mixes
 	// parameters with encoded binary data.
-	multipartBody, err := rest.NewMultipartBody(requestVariables, fileMap)
+	multipartBody, err := rest.NewMultipartMessage(requestVariables, fileMap)
 
 	if err != nil {
 		log.Printf("Could not create multipart body %s.", err.Error())

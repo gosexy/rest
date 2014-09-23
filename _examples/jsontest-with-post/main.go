@@ -5,8 +5,8 @@
 package main
 
 import (
+	"github.com/gosexy/rest"
 	"log"
-	"menteslibres.net/gosexy/rest"
 	"net/url"
 )
 

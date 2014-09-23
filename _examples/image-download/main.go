@@ -5,9 +5,9 @@ package main
 
 import (
 	"bytes"
+	"github.com/gosexy/rest"
 	"image/jpeg"
 	"log"
-	"menteslibres.net/gosexy/rest"
 	"net/url"
 )
 
