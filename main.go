@@ -47,7 +47,7 @@ const debugEnv = `REST_DEBUG`
 
 const (
 	debugLevelSilence = iota
-	debugLevelVerbose = 1
+	debugLevelVerbose
 )
 
 var debugLevel = debugLevelSilence
