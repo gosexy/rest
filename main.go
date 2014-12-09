@@ -46,11 +46,11 @@ import (
 const debugEnv = `REST_DEBUG`
 
 const (
-	debugLevelSilence = 0
+	debugLevelSilence = iota
 	debugLevelVerbose = 1
 )
 
-var debugLevel = 0
+var debugLevel = debugLevelSilence
 
 var (
 	ioReadCloserType = reflect.TypeOf((*io.ReadCloser)(nil)).Elem()
