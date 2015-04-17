@@ -276,6 +276,25 @@ func (self *Client) PostMultipart(dst interface{}, uri string, data *MultipartMe
 	return self.newMultipartRequest(dst, "POST", addr, data)
 }
 
+// PutRaw performs a HTTP PUT request with a custom body and, when complete,
+// attempts to convert the response body into the datatype given by dst (a
+// pointer to a struct, map or []byte array).
+func (self *Client) PutRaw(dst interface{}, path string, body []byte) error {
+	var addr *url.URL
+	var err error
+	var bodyReader *strings.Reader
+
+	if addr, err = url.Parse(self.Prefix + strings.TrimLeft(path, "/")); err != nil {
+		return err
+	}
+
+	if body != nil {
+		bodyReader = strings.NewReader(string(body))
+	}
+
+	return self.newRequest(dst, "PUT", addr, bodyReader)
+}
+
 // PostRaw performs a HTTP POST request with a custom body and, when complete,
 // attempts to convert the response body into the datatype given by dst (a
 // pointer to a struct, map or []byte array).
