@@ -527,8 +527,9 @@ func (self *Client) handleResponse(dst interface{}, res *http.Response) error {
 			return err
 		}
 
-		if strings.HasPrefix(t, "application/json") == true {
-			if rv.Elem().Kind() == reflect.Struct || rv.Elem().Kind() == reflect.Map {
+		if strings.HasPrefix(t, "application/json") {
+			kind := rv.Elem().Kind()
+			if kind == reflect.Struct || kind == reflect.Map || kind == reflect.Slice {
 				err = json.Unmarshal(buf, dst)
 				return err
 			}
