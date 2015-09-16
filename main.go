@@ -26,6 +26,7 @@ package rest
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -98,6 +99,8 @@ type Client struct {
 	Prefix string
 	// Jar to store cookies.
 	CookieJar *cookiejar.Jar
+	// Optional TLSClient
+	tlsClientConfig *tls.Config
 }
 
 // DefaulClient is the default client used on top level functions like
@@ -136,6 +139,16 @@ func New(prefix string) (*Client, error) {
 	}
 
 	return self, nil
+}
+
+func NewTLS(prefix string, tlsClient *tls.Config) (*Client, error) {
+	client, err := New(prefix)
+	if err != nil {
+		return client, err
+	}
+	client.tlsClientConfig = tlsClient
+
+	return client, err
 }
 
 // Taken from net/http
@@ -545,7 +558,17 @@ func (self *Client) handleResponse(dst interface{}, res *http.Response) error {
 }
 
 func (self *Client) do(req *http.Request) (*http.Response, error) {
-	client := new(http.Client)
+	var client http.Client
+	if self.tlsClientConfig != nil {
+		tr := &http.Transport{
+			TLSClientConfig: self.tlsClientConfig,
+		}
+		client = http.Client{
+			Transport: tr,
+		}
+	} else {
+		client = http.Client{}
+	}
 
 	// Adding cookie jar
 	if self.CookieJar != nil {
