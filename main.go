@@ -99,8 +99,8 @@ type Client struct {
 	Prefix string
 	// Jar to store cookies.
 	CookieJar *cookiejar.Jar
-	// Optional TLSClient
-	tlsClientConfig *tls.Config
+	// Optional tls transport
+	TlsTransport *http.Transport
 }
 
 // DefaulClient is the default client used on top level functions like
@@ -146,7 +146,9 @@ func NewTLS(prefix string, tlsClient *tls.Config) (*Client, error) {
 	if err != nil {
 		return client, err
 	}
-	client.tlsClientConfig = tlsClient
+	client.TlsTransport = &http.Transport{
+		TLSClientConfig: tlsClient,
+	}
 
 	return client, err
 }
@@ -559,12 +561,9 @@ func (self *Client) handleResponse(dst interface{}, res *http.Response) error {
 
 func (self *Client) do(req *http.Request) (*http.Response, error) {
 	var client http.Client
-	if self.tlsClientConfig != nil {
-		tr := &http.Transport{
-			TLSClientConfig: self.tlsClientConfig,
-		}
+	if self.TlsTransport != nil {
 		client = http.Client{
-			Transport: tr,
+			Transport: self.TlsTransport,
 		}
 	} else {
 		client = http.Client{}
