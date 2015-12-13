@@ -62,7 +62,7 @@ objects if you provide a pointer to map or struct as destination.
 This example expects JSON and unmarshals it to a map:
 
 ```go
-buf := map[string]interface{}
+buf := map[string]interface{}{}
 
 // This service returns a JSON string containing your IP, like:
 // {"ip": "173.194.64.141"}
